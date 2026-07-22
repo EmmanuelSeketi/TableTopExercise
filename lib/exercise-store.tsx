@@ -164,9 +164,12 @@ async function fetchStateFromServer(): Promise<Partial<ExerciseState> | null> {
 
 async function pushStateToServer(patch: Record<string, unknown>): Promise<void> {
   try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    const secret = process.env.NEXT_PUBLIC_EXERCISE_API_SECRET
+    if (secret) headers['x-api-secret'] = secret
     await fetch('/api/exercise-state', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(patch),
     })
   } catch {
@@ -237,8 +240,6 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
       scores: state.scores,
       aarNotes: state.aarNotes,
       actionItems: state.actionItems,
-      running: state.running,
-      elapsedSeconds: state.elapsedSeconds,
     }
 
     pushStateToServer(patch)
@@ -268,8 +269,6 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
     state.scores,
     state.aarNotes,
     state.actionItems,
-    state.running,
-    state.elapsedSeconds,
   ])
 
   useEffect(() => {

@@ -21,12 +21,13 @@ export default function ProjectedPage() {
         <CardHeader>
           <CardTitle className="text-[#0a5763]">Join the exercise</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center gap-2 p-6 text-center">
+        <CardContent className="flex flex-col items-center justify-center gap-3 p-6 text-center">
           <img
             src={qrCodeUrl}
             alt="QR code for signup"
             className="h-60 w-60 border border-border/70 bg-white p-3"
           />
+          <p className="text-sm font-medium text-foreground">Scan to Join</p>
         </CardContent>
       </Card>
     </div>

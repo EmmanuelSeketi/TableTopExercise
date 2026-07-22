@@ -4,17 +4,24 @@ import fs from 'fs'
 
 const DATA_FILE = path.join(process.cwd(), 'data', 'exercise-state.json')
 const LOCK_FILE = path.join(process.cwd(), 'data', '.exercise-state.lock')
+const API_SECRET = process.env.EXERCISE_API_SECRET || ''
 
 let writePromise: Promise<void> | null = null
+
+function checkAuth(request: Request) {
+  if (!API_SECRET) return true
+  const secret = request.headers.get('x-api-secret')
+  return secret === API_SECRET
+}
 
 async function acquireLock(): Promise<void> {
   while (true) {
     try {
-      fs.accessSync(LOCK_FILE)
-      await new Promise((resolve) => setTimeout(resolve, 50))
-    } catch {
-      fs.writeFileSync(LOCK_FILE, String(Date.now()))
+      const fd = fs.openSync(LOCK_FILE, 'wx')
+      fs.closeSync(fd)
       return
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 50))
     }
   }
 }
@@ -52,6 +59,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    if (!checkAuth(request)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const patch = (await request.json()) as Record<string, unknown>
 
     if (writePromise) {
