@@ -50,7 +50,7 @@ export default function ParticipantPage() {
     ? state.responses.find((r) => r.participantId === deviceId && r.injectId === activeInject.id)
     : undefined
 
-  const existingChoice = existingResponse
+  const existingChoice = activeInject && existingResponse
     ? activeInject.choices.find((c) => c.id === existingResponse.choice)
     : undefined
 
