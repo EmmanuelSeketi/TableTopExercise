@@ -4,11 +4,8 @@ import { useMemo } from 'react'
 import { BarChart3, CheckCircle2, XCircle, Minus } from 'lucide-react'
 import { INJECTS } from '@/lib/exercise-data'
 import { useExercise } from '@/lib/exercise-store'
-import { SectionHeader } from '@/components/section-header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-
-const CHART_MAX = 15
 
 export default function ModeratePage() {
   const { state } = useExercise()
@@ -33,32 +30,7 @@ export default function ModeratePage() {
     return { correct, neutral, wrong, total: state.responses.length }
   }, [state.responses])
 
-  const injectResponseStats = useMemo(() => {
-    return INJECTS.map((inject) => {
-      const injectResponses = state.responses.filter((r) => r.injectId === inject.id)
-      const correct = injectResponses.filter((r) => {
-        const choice = inject.choices.find((c) => c.id === r.choice)
-        return choice?.type === 'correct'
-      }).length
-      const neutral = injectResponses.filter((r) => {
-        const choice = inject.choices.find((c) => c.id === r.choice)
-        return choice?.type === 'neutral'
-      }).length
-      const wrong = injectResponses.filter((r) => {
-        const choice = inject.choices.find((c) => c.id === r.choice)
-        return choice?.type === 'wrong'
-      }).length
-      return {
-        id: inject.id,
-        title: inject.title,
-        time: inject.time,
-        correct,
-        neutral,
-        wrong,
-        total: injectResponses.length,
-      }
-    })
-  }, [state.responses])
+  const maxCount = useMemo(() => Math.max(responseStats.correct, responseStats.neutral, responseStats.wrong, 1), [responseStats])
 
   return (
     <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -108,55 +80,33 @@ export default function ModeratePage() {
             </div>
 
             <div className="border border-border/70 bg-card p-4">
-              <p className="text-sm font-medium mb-3">Analytics By Choice</p>
-              <div className="flex h-48">
-                <div className="flex w-10 shrink-0 flex-col-reverse justify-between border-r border-foreground/40 pr-1 text-right">
-                  {Array.from({ length: CHART_MAX + 1 }, (_, value) => (
-                    <span key={value} className="text-[9px] leading-none text-muted-foreground">
-                      {value}
-                    </span>
-                  ))}
-                </div>
-                <div className="flex flex-1 items-end justify-between gap-2 border-b border-foreground/40 pl-2">
-                  <div className="flex h-full flex-1 flex-col items-center justify-end">
-                    <span className="mb-1 text-xs font-semibold text-emerald-400">{responseStats.correct}</span>
-                    <div
-                      className="w-full max-w-10 bg-emerald-500/80"
-                      style={{ height: `${Math.max((responseStats.correct / Math.max(responseStats.total, 1)) * 100, 4)}%` }}
-                    />
-                  </div>
-                  <div className="flex h-full flex-1 flex-col items-center justify-end">
-                    <span className="mb-1 text-xs font-semibold text-amber-400">{responseStats.neutral}</span>
-                    <div
-                      className="w-full max-w-10 bg-amber-500/80"
-                      style={{ height: `${Math.max((responseStats.neutral / Math.max(responseStats.total, 1)) * 100, 4)}%` }}
-                    />
-                  </div>
-                  <div className="flex h-full flex-1 flex-col items-center justify-end">
-                    <span className="mb-1 text-xs font-semibold text-red-400">{responseStats.wrong}</span>
-                    <div
-                      className="w-full max-w-10 bg-red-500/80"
-                      style={{ height: `${Math.max((responseStats.wrong / Math.max(responseStats.total, 1)) * 100, 4)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="flex mt-2">
-                <div className="flex-1 text-center">
-                  <div className="flex items-center justify-center gap-1 text-[11px] text-emerald-400">
-                    <CheckCircle2 className="size-3" /> Correct
-                  </div>
-                </div>
-                <div className="flex-1 text-center">
-                  <div className="flex items-center justify-center gap-1 text-[11px] text-amber-400">
-                    <Minus className="size-3" /> Neutral
-                  </div>
-                </div>
-                <div className="flex-1 text-center">
-                  <div className="flex items-center justify-center gap-1 text-[11px] text-red-400">
-                    <XCircle className="size-3" /> Wrong
-                  </div>
-                </div>
+              <p className="text-sm font-medium mb-4">Analytics By Choice</p>
+              <div className="space-y-3">
+                {[
+                  { label: 'Correct', count: responseStats.correct, color: 'bg-emerald-500', textColor: 'text-emerald-400', icon: CheckCircle2 },
+                  { label: 'Neutral', count: responseStats.neutral, color: 'bg-amber-500', textColor: 'text-amber-400', icon: Minus },
+                  { label: 'Wrong', count: responseStats.wrong, color: 'bg-red-500', textColor: 'text-red-400', icon: XCircle },
+                ].map((item) => {
+                  const widthPct = maxCount > 0 ? (item.count / maxCount) * 100 : 0
+                  const Icon = item.icon
+                  return (
+                    <div key={item.label} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <Icon className={`size-4 ${item.textColor}`} />
+                          <span className="font-medium text-foreground">{item.label}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{item.count}</span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden bg-muted">
+                        <div
+                          className={`h-full ${item.color}`}
+                          style={{ width: `${Math.max(widthPct, item.count > 0 ? 6 : 0)}%` }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </CardContent>

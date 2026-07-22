@@ -8,17 +8,15 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
 const ROLE_CHART_COLORS = [
-  '#007A8E', // teal (brand primary)
-  '#c9a76b', // gold (brand accent)
-  '#0a5763', // deep teal
-  '#8a6a35', // bronze
-  '#3fa7b8', // light teal
-  '#e4cf9c', // pale gold
-  '#123b42', // near-black teal
-  '#a98a4e', // muted gold
+  '#007A8E',
+  '#c9a76b',
+  '#0a5763',
+  '#8a6a35',
+  '#3fa7b8',
+  '#e4cf9c',
+  '#123b42',
+  '#a98a4e',
 ]
-
-const CHART_MAX = 15
 
 export default function FacilitatorPage() {
   const { state, setActiveInject, resetAll, hydrated } = useExercise()
@@ -30,6 +28,10 @@ export default function FacilitatorPage() {
       return acc
     }, {})
   }, [state.participants])
+
+  const maxRoleCount = useMemo(() => {
+    return Math.max(...Object.values(roleCounts), 1)
+  }, [roleCounts])
 
   if (!hydrated) {
     return (
@@ -99,42 +101,29 @@ export default function FacilitatorPage() {
               <Badge variant="secondary">{state.participants.length}</Badge>
             </div>
             <div className="border border-border/70 bg-card p-4">
-              <div className="flex h-48">
-                {/* Y axis */}
-                <div className="flex w-10 shrink-0 flex-col-reverse justify-between border-r border-foreground/40 pr-1 text-right">
-                  {Array.from({ length: CHART_MAX + 1 }, (_, value) => (
-                    <span key={value} className="text-[9px] leading-none text-muted-foreground">
-                      {value}
-                    </span>
-                  ))}
-                </div>
-                {/* Plot area */}
-                <div className="flex flex-1 items-end justify-between gap-2 border-b border-foreground/40 pl-2">
-                  {ROLES.map((role, index) => {
-                    const count = roleCounts[role.id] ?? 0
-                    const heightPct = (Math.min(count, CHART_MAX) / CHART_MAX) * 100
-                    return (
-                      <div key={role.id} className="flex h-full flex-1 flex-col items-center justify-end">
-                        <span className="mb-1 text-xs font-semibold text-foreground">{count}</span>
+              <div className="space-y-3">
+                {ROLES.map((role, index) => {
+                  const count = roleCounts[role.id] ?? 0
+                  const widthPct = maxRoleCount > 0 ? (count / maxRoleCount) * 100 : 0
+                  const color = ROLE_CHART_COLORS[index % ROLE_CHART_COLORS.length]
+                  return (
+                    <div key={role.id} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium text-foreground">{role.title}</span>
+                        <span className="text-xs text-muted-foreground">{count} joined</span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden bg-muted">
                         <div
-                          className="w-full max-w-10 transition-all"
+                          className="h-full transition-all"
                           style={{
-                            height: `${Math.max(heightPct, count > 0 ? 4 : 0)}%`,
-                            backgroundColor: ROLE_CHART_COLORS[index % ROLE_CHART_COLORS.length],
+                            width: `${Math.max(widthPct, count > 0 ? 8 : 0)}%`,
+                            backgroundColor: color,
                           }}
                         />
                       </div>
-                    )
-                  })}
-                </div>
-              </div>
-              {/* X axis category names */}
-              <div className="flex pl-12">
-                {ROLES.map((role) => (
-                  <span key={role.id} className="flex-1 text-center text-[11px] leading-tight text-muted-foreground">
-                    {role.title}
-                  </span>
-                ))}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </CardContent>
