@@ -1,0 +1,29 @@
+{
+  "settings": {
+    "title": "Operation Ledger Lock — Ransomware Tabletop",
+    "organization": "Meridian Financial Group",
+    "facilitator": "A. Rivera, CISM",
+    "durationMinutes": 60,
+    "theme": "light",
+    "autoSave": true,
+    "sound": true,
+    "logoDataUrl": null
+  },
+  "participants": [],
+  "responses": [],
+  "activeInjectId": null,
+  "completedInjects": [],
+  "facilitatorPhase": "signup",
+  "decisions": [],
+  "scores": {},
+  "aarNotes": {
+    "executiveSummary": "",
+    "strengths": "",
+    "improvements": "",
+    "lessons": "",
+    "recommendations": ""
+  },
+  "actionItems": [],
+  "running": false,
+  "elapsedSeconds": 0
+}

@@ -49,10 +49,8 @@ export interface ParticipantResponse {
 
 export interface ExerciseState {
   settings: Settings
-  // timer
   running: boolean
   elapsedSeconds: number
-  // progress
   completedInjects: string[]
   participants: Participant[]
   activeInjectId: string | null
@@ -113,32 +111,22 @@ const defaultState: ExerciseState = {
 interface StoreContextValue {
   state: ExerciseState
   hydrated: boolean
-  // timer
   start: () => void
   pause: () => void
   reset: () => void
-  // injects
   toggleInject: (id: string) => void
-  // decisions
   addDecision: (d: Omit<Decision, 'id' | 'createdAt'>) => void
   removeDecision: (id: string) => void
-  // participants
   addParticipant: (p: Omit<Participant, 'id'>) => void
   removeParticipant: (id: string) => void
-  // active inject / facilitator
   setActiveInject: (injectId: string | null) => void
   setFacilitatorPhase: (phase: ExerciseState['facilitatorPhase']) => void
-  // participant responses
   submitResponse: (participantId: string, injectId: string, choice: string) => void
-  // scores
   setScore: (categoryId: string, value: number) => void
-  // settings
   updateSettings: (patch: Partial<Settings>) => void
-  // aar
   updateAarNotes: (patch: Partial<ExerciseState['aarNotes']>) => void
   addActionItem: (a: Omit<ActionItem, 'id'>) => void
   removeActionItem: (id: string) => void
-  // helpers
   resetAll: () => void
 }
 
@@ -164,60 +152,134 @@ function playBeep() {
   }
 }
 
+async function fetchStateFromServer(): Promise<Partial<ExerciseState> | null> {
+  try {
+    const response = await fetch('/api/exercise-state', { cache: 'no-store' })
+    if (!response.ok) return null
+    return (await response.json()) as Partial<ExerciseState>
+  } catch {
+    return null
+  }
+}
+
+async function pushStateToServer(patch: Record<string, unknown>): Promise<void> {
+  try {
+    await fetch('/api/exercise-state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    })
+  } catch {
+    // ignore write failures
+  }
+}
+
 export function ExerciseProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<ExerciseState>(defaultState)
   const [hydrated, setHydrated] = useState(false)
   const notifiedRef = useRef<Set<number>>(new Set())
+  const serverHydrated = useRef(false)
 
-  // Hydrate from localStorage
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<ExerciseState>
+    let cancelled = false
+
+    async function hydrate() {
+      const remote = await fetchStateFromServer()
+      if (cancelled) return
+
+      if (remote) {
         setState((prev) => ({
           ...prev,
-          ...parsed,
-          settings: { ...prev.settings, ...parsed.settings },
-          aarNotes: { ...prev.aarNotes, ...parsed.aarNotes },
+          ...remote,
+          settings: { ...prev.settings, ...(remote.settings as Partial<Settings>) },
+          aarNotes: { ...prev.aarNotes, ...(remote.aarNotes as Partial<ExerciseState['aarNotes']>) },
         }))
+        serverHydrated.current = true
+      } else {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY)
+          if (raw) {
+            const parsed = JSON.parse(raw) as Partial<ExerciseState>
+            setState((prev) => ({
+              ...prev,
+              ...parsed,
+              settings: { ...prev.settings, ...parsed.settings },
+              aarNotes: { ...prev.aarNotes, ...parsed.aarNotes },
+            }))
+          }
+        } catch {
+          // ignore malformed storage
+        }
       }
-    } catch {
-      // ignore malformed storage
+
+      setHydrated(true)
     }
-    setHydrated(true)
+
+    hydrate()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  // Persist (respect autoSave)
   useEffect(() => {
     if (!hydrated) return
+    if (!serverHydrated.current) return
     if (!state.settings.autoSave) return
+
+    const patch = {
+      settings: state.settings,
+      participants: state.participants,
+      responses: state.responses,
+      activeInjectId: state.activeInjectId,
+      completedInjects: state.completedInjects,
+      facilitatorPhase: state.facilitatorPhase,
+      decisions: state.decisions,
+      scores: state.scores,
+      aarNotes: state.aarNotes,
+      actionItems: state.actionItems,
+      running: state.running,
+      elapsedSeconds: state.elapsedSeconds,
+    }
+
+    pushStateToServer(patch)
+
+    const interval = setInterval(async () => {
+      const remote = await fetchStateFromServer()
+      if (!remote) return
+      setState((prev) => ({
+        ...prev,
+        ...remote,
+        settings: { ...prev.settings, ...(remote.settings as Partial<Settings>) },
+        aarNotes: { ...prev.aarNotes, ...(remote.aarNotes as Partial<ExerciseState['aarNotes']>) },
+      }))
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [
+    hydrated,
+    state.settings.autoSave,
+    state.settings,
+    state.participants,
+    state.responses,
+    state.activeInjectId,
+    state.completedInjects,
+    state.facilitatorPhase,
+    state.decisions,
+    state.scores,
+    state.aarNotes,
+    state.actionItems,
+    state.running,
+    state.elapsedSeconds,
+  ])
+
+  useEffect(() => {
+    if (!serverHydrated.current) return
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
     } catch {
       // ignore quota errors
     }
-  }, [state, hydrated])
-
-  useEffect(() => {
-    function onStorage(event: StorageEvent) {
-      if (event.key !== STORAGE_KEY) return
-      if (!event.newValue) return
-      try {
-        const parsed = JSON.parse(event.newValue) as Partial<ExerciseState>
-        setState((prev) => ({
-          ...prev,
-          ...parsed,
-          settings: { ...prev.settings, ...parsed.settings },
-          aarNotes: { ...prev.aarNotes, ...parsed.aarNotes },
-        }))
-      } catch {
-        // ignore malformed storage
-      }
-    }
-    window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
-  }, [])
+  }, [state])
 
   // Apply theme to <html>
   useEffect(() => {
@@ -334,7 +396,6 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
   const updateSettings = useCallback((patch: Partial<Settings>) => {
     setState((p) => {
       const next = { ...p, settings: { ...p.settings, ...patch } }
-      // If autoSave turned off, we stop persisting; if turned on, persist immediately handled by effect
       return next
     })
   }, [])
@@ -353,13 +414,29 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
 
   const resetAll = useCallback(() => {
     notifiedRef.current.clear()
-    setState((p) => ({ ...defaultState, settings: p.settings }))
+    const emptyState = { ...defaultState, settings: state.settings } as ExerciseState
+    setState(emptyState)
+    pushStateToServer({
+      settings: emptyState.settings,
+      participants: [],
+      responses: [],
+      activeInjectId: null,
+      completedInjects: [],
+      facilitatorPhase: 'signup',
+      decisions: [],
+      scores: {},
+      aarNotes: emptyState.aarNotes,
+      actionItems: [],
+      running: false,
+      elapsedSeconds: 0,
+    })
     try {
       localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem('cyber-exercise-device-id')
     } catch {
       // ignore
     }
-  }, [])
+  }, [state.settings])
 
   const value = useMemo<StoreContextValue>(
     () => ({

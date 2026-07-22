@@ -21,7 +21,7 @@ const ROLE_CHART_COLORS = [
 const CHART_MAX = 15
 
 export default function FacilitatorPage() {
-  const { state, setActiveInject, toggleInject } = useExercise()
+  const { state, setActiveInject, resetAll, hydrated } = useExercise()
   const activeInject = INJECTS.find((inject) => inject.id === state.activeInjectId)
 
   const roleCounts = useMemo(() => {
@@ -30,6 +30,25 @@ export default function FacilitatorPage() {
       return acc
     }, {})
   }, [state.participants])
+
+  if (!hydrated) {
+    return (
+      <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="flex justify-center rounded-lg bg-[#03262c] p-4 sm:p-6">
+          <img
+            src="/celium-logo.png"
+            alt="Celium — The Data Protection Symposium 2024"
+            className="h-auto w-full max-w-xl"
+          />
+        </div>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-sm text-muted-foreground">Loading exercise data...</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -151,6 +170,10 @@ export default function FacilitatorPage() {
           })}
         </CardContent>
       </Card>
+
+      <Button variant="destructive" onClick={resetAll} className="w-full">
+        Reset exercise data
+      </Button>
     </div>
   )
 }
