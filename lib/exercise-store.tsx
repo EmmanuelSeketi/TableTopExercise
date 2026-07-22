@@ -260,8 +260,6 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
 
     const patch = {
       settings: state.settings,
-      participants: state.participants,
-      responses: state.responses,
       activeInjectId: state.activeInjectId,
       completedInjects: state.completedInjects,
       facilitatorPhase: state.facilitatorPhase,
@@ -404,7 +402,7 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
     setState((p) => ({ ...p, facilitatorPhase: phase }))
   }, [])
 
-  const submitResponse = useCallback((participantId: string, injectId: string, choice: string) => {
+  const submitResponse = useCallback(async (participantId: string, injectId: string, choice: string) => {
     setState((p) => {
       const alreadySubmitted = p.responses.some((r) => r.participantId === participantId && r.injectId === injectId)
       if (alreadySubmitted) return p
@@ -422,6 +420,19 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
         ],
       }
     })
+
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      const secret = process.env.NEXT_PUBLIC_EXERCISE_API_SECRET
+      if (secret) headers['x-api-secret'] = secret
+      await fetch('/api/exercise-state/respond', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ participantId, injectId, choice }),
+      })
+    } catch {
+      // ignore submit failures; polling will reconcile
+    }
   }, [])
 
   const setScore = useCallback((categoryId: string, value: number) => {
