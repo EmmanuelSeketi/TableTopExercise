@@ -3,7 +3,6 @@ import path from 'path'
 import fs from 'fs'
 
 const DATA_FILE = path.join(process.cwd(), 'data', 'exercise-state.json')
-const LOCK_FILE = path.join(process.cwd(), 'data', '.exercise-state.lock')
 const API_SECRET = process.env.EXERCISE_API_SECRET || ''
 
 let writePromise: Promise<void> | null = null
@@ -12,26 +11,6 @@ function checkAuth(request: Request) {
   if (!API_SECRET) return true
   const secret = request.headers.get('x-api-secret')
   return secret === API_SECRET
-}
-
-async function acquireLock(): Promise<void> {
-  while (true) {
-    try {
-      const fd = fs.openSync(LOCK_FILE, 'wx')
-      fs.closeSync(fd)
-      return
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, 50))
-    }
-  }
-}
-
-function releaseLock() {
-  try {
-    fs.unlinkSync(LOCK_FILE)
-  } catch {
-    // ignore
-  }
 }
 
 function readStateFromDisk(): Record<string, unknown> {
@@ -44,8 +23,10 @@ function readStateFromDisk(): Record<string, unknown> {
   }
 }
 
-function writeStateToDisk(state: Record<string, unknown>) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(state, null, 2), 'utf-8')
+function writeStateToDiskAtomic(state: Record<string, unknown>) {
+  const tmpFile = `${DATA_FILE}.${process.pid}.${Date.now()}.tmp`
+  fs.writeFileSync(tmpFile, JSON.stringify(state, null, 2), 'utf-8')
+  fs.renameSync(tmpFile, DATA_FILE)
 }
 
 export async function GET() {
@@ -70,14 +51,9 @@ export async function POST(request: Request) {
     }
 
     writePromise = (async () => {
-      await acquireLock()
-      try {
-        const current = readStateFromDisk()
-        const merged = deepMerge(current, patch)
-        writeStateToDisk(merged)
-      } finally {
-        releaseLock()
-      }
+      const current = readStateFromDisk()
+      const merged = deepMerge(current, patch)
+      writeStateToDiskAtomic(merged)
     })()
 
     await writePromise
@@ -97,7 +73,7 @@ function deepMerge(target: Record<string, unknown>, source: Record<string, unkno
     const targetValue = target[key]
 
     if (isPlainObject(sourceValue) && isPlainObject(targetValue)) {
-      result[key] = deepMerge(targetValue as Record<string, unknown>, sourceValue as Record<string, unknown>)
+      result[key] = deepMerge(targetValue, sourceValue)
     } else if (sourceValue !== undefined) {
       result[key] = sourceValue
     }
