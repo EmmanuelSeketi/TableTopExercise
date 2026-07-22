@@ -1,11 +1,20 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function ProjectedPage() {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-  const signupUrl = `${appUrl.replace(/\/$/, '')}/signup`
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(signupUrl)}`
+  const [signupUrl, setSignupUrl] = useState('')
+
+  useEffect(() => {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '')
+    if (!appUrl) return
+    setSignupUrl(`${appUrl.replace(/\/$/, '')}/signup`)
+  }, [])
+
+  const qrCodeUrl = signupUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(signupUrl)}`
+    : ''
 
   return (
     <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">

@@ -1,8 +1,11 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { ParticipantsSection } from '@/components/sections/participants'
 
 export default function SignupPage() {
+  const router = useRouter()
+
   return (
     <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
       <div className="flex justify-center rounded-lg bg-[#03262c] p-4 sm:p-6">
@@ -13,7 +16,7 @@ export default function SignupPage() {
         />
       </div>
 
-      <ParticipantsSection />
+      <ParticipantsSection onContinue={() => router.push('/participant')} />
     </div>
   )
 }
