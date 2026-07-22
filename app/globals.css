@@ -1,0 +1,201 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Default light theme */
+:root {
+  color-scheme: light;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #007A8E;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --success: #16a34a;
+  --success-foreground: #ffffff;
+  --warning: #f59e0b;
+  --warning-foreground: #0f172a;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #007A8E;
+  --chart-1: #007A8E;
+  --chart-2: #0ea5e9;
+  --chart-3: #16a34a;
+  --chart-4: #f59e0b;
+  --chart-5: #ef4444;
+  --radius: 0rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #007A8E;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f1f5f9;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #007A8E;
+}
+
+/* Dark theme override via class */
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.17 0.02 255);
+  --foreground: oklch(0.95 0.01 255);
+  --card: oklch(0.21 0.025 255);
+  --card-foreground: oklch(0.95 0.01 255);
+  --popover: oklch(0.2 0.025 255);
+  --popover-foreground: oklch(0.95 0.01 255);
+  --primary: #007A8E;
+  --primary-foreground: #ffffff;
+  --secondary: oklch(0.27 0.03 255);
+  --secondary-foreground: oklch(0.95 0.01 255);
+  --muted: oklch(0.26 0.025 255);
+  --muted-foreground: oklch(0.68 0.02 255);
+  --accent: oklch(0.7 0.14 210);
+  --accent-foreground: oklch(0.15 0.02 255);
+  --destructive: oklch(0.62 0.21 22);
+  --destructive-foreground: oklch(0.98 0.01 255);
+  --success: oklch(0.68 0.15 155);
+  --success-foreground: oklch(0.15 0.02 255);
+  --warning: oklch(0.78 0.15 75);
+  --warning-foreground: oklch(0.2 0.02 255);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: #007A8E;
+  --sidebar: oklch(0.19 0.022 255);
+  --sidebar-foreground: oklch(0.95 0.01 255);
+  --sidebar-primary: #007A8E;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: oklch(0.27 0.03 255);
+  --sidebar-accent-foreground: oklch(0.95 0.01 255);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: #007A8E;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  /* Glassmorphism surface */
+  .glass {
+    background: color-mix(in oklab, var(--card) 70%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .glass-strong {
+    background: color-mix(in oklab, var(--card) 85%, transparent);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  /* Subtle grid backdrop for dashboard feel */
+  .cyber-grid {
+    background-image:
+      linear-gradient(color-mix(in oklab, var(--primary) 8%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in oklab, var(--primary) 8%, transparent) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+  .glow-primary {
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 40%, transparent),
+      0 0 24px color-mix(in oklab, var(--primary) 22%, transparent);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+.animate-pulse-ring {
+  animation: pulse-ring 2s cubic-bezier(0.66, 0, 0, 1) infinite;
+}
+
+/* Print / PDF friendly styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .print-container {
+    display: block !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .print-break {
+    page-break-inside: avoid;
+  }
+}

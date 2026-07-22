@@ -1,0 +1,362 @@
+[
+  {
+    "id": "inj1",
+    "order": 1,
+    "time": "05:00",
+    "title": "A Door That Shouldn't Be Open",
+    "phase": "Detection",
+    "nist": "Detection & Analysis",
+    "description": "The SIEM lights up. A correlation rule has fired: a service account - one that has never logged in from this location before - has just authenticated from finance workstation FIN-WS-042 to the domain controller. Service accounts don't wander. When one shows up somewhere new, it usually means someone else is driving it.",
+    "evidence": "SIEM: 4624 logon type 3, service account svc_backup, source FIN-WS-042, 09:19:03.",
+    "choices": [
+      {
+        "id": "correct",
+        "label": "Isolate FIN-WS-042 from the network without powering it off, disable/reset the service account, pull authentication logs to check for lateral movement, and open an incident ticket.",
+        "type": "correct"
+      },
+      {
+        "id": "neutral",
+        "label": "Flag the alert as suspicious and assign an analyst to review it later in the shift, with no containment action taken yet.",
+        "type": "neutral"
+      },
+      {
+        "id": "wrong",
+        "label": "Close the alert as a false positive since service accounts sometimes behave oddly, with no isolation and no escalation.",
+        "type": "wrong"
+      }
+    ],
+    "facilitatorNotes": "Watch whether the team treats this as noise or investigates. Good teams pivot on the account and host immediately.",
+    "hint": "A service account interactively used from a user workstation is rarely legitimate.",
+    "mitre": "TA0001 Initial Access / T1078 Valid Accounts"
+  },
+  {
+    "id": "inj2",
+    "order": 2,
+    "time": "10:00",
+    "title": "Excel Doesn't Do That",
+    "phase": "Detection",
+    "nist": "Detection & Analysis",
+    "description": "Five minutes later, EDR raises a high-severity alert on the same machine. EXCEL.EXE has just spawned powershell.exe, and the command line is Base64-encoded gibberish designed to hide its true intent. Spreadsheets don't open PowerShell. Attackers do.",
+    "evidence": "EDR process tree: EXCEL.EXE → powershell.exe -enc <redacted>. Network beacon to 185.xx.xx.xx every 60s.",
+    "choices": [
+      {
+        "id": "correct",
+        "label": "Treat this as confirmed malicious activity, auto-contain the host via EDR, decode the command to extract indicators, and hunt across the environment for the same process pattern.",
+        "type": "correct"
+      },
+      {
+        "id": "neutral",
+        "label": "Acknowledge the alert and run an antivirus scan on the host, but wait for further confirmation before isolating it.",
+        "type": "neutral"
+      },
+      {
+        "id": "wrong",
+        "label": "Dismiss it as a known false positive caused by macros and allow the user to keep working on the machine.",
+        "type": "wrong"
+      }
+    ],
+    "facilitatorNotes": "Assess whether they preserve evidence before isolating. Both matter — sequencing is a discussion point.",
+    "hint": "Host isolation via EDR keeps forensic data intact while cutting network access.",
+    "mitre": "TA0002 Execution / T1059.001 PowerShell"
+  },
+  {
+    "id": "inj3",
+    "order": 3,
+    "time": "15:00",
+    "title": "It's Not Just One Machine Anymore",
+    "phase": "Analysis",
+    "nist": "Detection & Analysis",
+    "description": "Analysts trace it back: the file was called \"Invoice_Q3_Reconciliation.xlsm\" - a macro-enabled attachment that looked routine enough for someone to open. It delivered a loader. And now the same beacon is showing up on two additional hosts. What started as one strange login is now a spreading foothold.",
+    "evidence": "Email gateway log of the phishing message; sandbox detonation report; beacon seen on FIN-WS-042, FIN-WS-018, HR-WS-007.",
+    "choices": [
+      {
+        "id": "correct",
+        "label": "Formally declare an incident, isolate all three infected hosts, block the malicious sender and file hash organization-wide, begin scoping for command-and-control activity, and notify the CISO/Incident Commander.",
+        "type": "correct"
+      },
+      {
+        "id": "neutral",
+        "label": "Isolate only the original host and note the other two hosts for follow-up later, without formally declaring an incident yet.",
+        "type": "neutral"
+      },
+      {
+        "id": "wrong",
+        "label": "Treat each infected host as a separate, unrelated ticket with no indicator sharing across the team and no escalation to leadership.",
+        "type": "wrong"
+      }
+    ],
+    "facilitatorNotes": "This is the key declaration moment. Note the time — success criteria target declaration by 15:00.",
+    "hint": "Multiple beaconing hosts = confirmed intrusion. Declare and coordinate now.",
+    "mitre": "TA0001 Initial Access / T1566.001 Spearphishing Attachment"
+  },
+  {
+    "id": "inj4",
+    "order": 4,
+    "time": "20:00",
+    "title": "Finance Goes Dark",
+    "phase": "Containment",
+    "nist": "Containment, Eradication & Recovery",
+    "description": "The finance file server, FIN-SRV-01, spikes hard on CPU - then silence. Its SMB shares vanish. Across Finance, people are staring at spinning cursors, unable to open a single document. On paper, this looks like an infrastructure failure. In reality, it's the same incident wearing a different face.",
+    "evidence": "Monitoring: FIN-SRV-01 SMB service down at 09:33. Scheduled task SysUpdate created 4 minutes earlier by svc_backup.",
+    "choices": [
+      {
+        "id": "correct",
+        "label": "Correlate this outage with the active incident rather than treating it as unrelated infrastructure, preserve logs and volatile evidence before any reboot, and have sysadmin and IR jointly assess for active ransomware encryption.",
+        "type": "correct"
+      },
+      {
+        "id": "neutral",
+        "label": "Restart the server to restore service quickly, without checking with IR or preserving evidence first.",
+        "type": "neutral"
+      },
+      {
+        "id": "wrong",
+        "label": "Treat it as a routine infrastructure ticket, run standard reboot and patch troubleshooting, and make no connection to the ongoing security incident.",
+        "type": "wrong"
+      }
+    ],
+    "facilitatorNotes": "Tension between isolating (stops spread) and business impact (halts finance). Look for risk-based reasoning.",
+    "hint": "A suspicious scheduled task by a compromised service account is a common ransomware staging step.",
+    "mitre": "TA0040 Impact / T1053.005 Scheduled Task"
+  },
+  {
+    "id": "inj5",
+    "order": 5,
+    "time": "25:00",
+    "title": "The Phones Start Ringing",
+    "phase": "Communication",
+    "nist": "Containment, Eradication & Recovery",
+    "description": "Word is spreading - just not internally yet. The service desk is drowning in tickets. Clients can't access their scheduled reconciliation reports, and they want answers now. Account managers, caught flat-footed, are asking the incident team for talking points before they say the wrong thing.",
+    "evidence": "Service desk queue: 37 tickets in 10 minutes referencing reports unavailable. Two clients cite contractual SLAs.",
+    "choices": [
+      {
+        "id": "correct",
+        "label": "Give account managers a single pre-approved holding statement and route all client communication through one coordinated source, avoiding speculation about cause.",
+        "type": "correct"
+      },
+      {
+        "id": "neutral",
+        "label": "Let each account manager explain the situation to clients in their own words, resulting in inconsistent messaging.",
+        "type": "neutral"
+      },
+      {
+        "id": "wrong",
+        "label": "Let account managers tell clients the company is being hacked and speculate about data theft before anything has been confirmed.",
+        "type": "wrong"
+      }
+    ],
+    "facilitatorNotes": "Does the team activate communications early, or stay heads-down on tech? Parallel workstreams are the goal.",
+    "hint": "External pressure will grow — get an approved holding statement ready before you need it.",
+    "nist": "Containment, Eradication & Recovery"
+  },
+  {
+    "id": "inj6",
+    "order": 6,
+    "time": "30:00",
+    "title": "The Note",
+    "phase": "Analysis",
+    "nist": "Containment, Eradication & Recovery",
+    "description": "Then it appears - on multiple hosts at once, unmistakable: RESTORE_YOUR_FILES.txt. The attackers want 40 BTC within 72 hours. They claim to have already stolen 240GB of client data, and they're threatening to leak it if they're not paid. The countdown has started, whether the organization is ready or not.",
+    "evidence": "Ransom note text; TOR negotiation URL; sample of allegedly exfiltrated filenames matching client folders.",
+    "choices": [
+      {
+        "id": "correct",
+        "label": "Preserve the note as evidence, avoid contacting the attacker directly, and immediately notify Legal, Executives, Cyber Insurance, and Law Enforcement.",
+        "type": "correct"
+      },
+      {
+        "id": "neutral",
+        "label": "Share the note internally and informally discuss the ransom amount, without yet contacting law enforcement or insurance.",
+        "type": "neutral"
+      },
+      {
+        "id": "wrong",
+        "label": "Have an admin open the attacker's payment portal and begin negotiating on their own, without executive or legal sign-off.",
+        "type": "wrong"
+      }
+    ],
+    "facilitatorNotes": "Surface the ransom-payment question and who has authority. Sanctions/insurer implications should come up.",
+    "hint": "Exfiltration claims change notification obligations — validate but assume data loss is possible.",
+    "mitre": "TA0040 Impact / T1486 Data Encrypted for Impact"
+  },
+  {
+    "id": "inj7",
+    "order": 7,
+    "time": "35:00",
+    "title": "A Reporter Is On the Line",
+    "phase": "Communication",
+    "nist": "Post-Incident Activity",
+    "description": "Somehow, word has already reached the press. A technology reporter emails the general inbox: \"Can you confirm Meridian is experiencing an outage affecting client reporting? On deadline in 2 hours.\" Whatever gets said next - or doesn't get said - will be quoted.",
+    "evidence": "Reporter email with newsroom signature; a client has apparently posted about the outage on social media.",
+    "choices": [
+      {
+        "id": "correct",
+        "label": "Have PR/Comms issue a brief holding statement acknowledging a service disruption under investigation, without confirming any breach details, coordinated with Legal before it's sent.",
+        "type": "correct"
+      },
+      {
+        "id": "neutral",
+        "label": "Let the deadline pass with no response sent, allowing the story to run without any company input.",
+        "type": "neutral"
+      },
+      {
+        "id": "wrong",
+        "label": "Have an untrained employee confirm on the record that the company was hacked and ransomed.",
+        "type": "wrong"
+      }
+    ],
+    "facilitatorNotes": "Check for message discipline — no one should freelance to the press. Legal review of external statements.",
+    "hint": "Acknowledge awareness and commitment to clients without confirming unverified specifics.",
+    "mitre": "TA0040 Impact / T1486 Data Encrypted for Impact"
+  },
+  {
+    "id": "inj8",
+    "order": 8,
+    "time": "40:00",
+    "title": "The Legal Clock Starts Ticking",
+    "phase": "Communication",
+    "nist": "Post-Incident Activity",
+    "description": "While the technical team is still fighting the fire, Legal delivers unwelcome news: the data believed stolen likely includes EU client personal data and US financial records. That single fact quietly triggers a cascade of legal obligations - GDPR, GLBA, and multiple state breach notification laws - each with its own clock, and none of them waiting for the investigation to finish.",
+    "evidence": "Sample exfiltrated filenames include EU client folders; data map indicates PII and financial account data.",
+    "choices": [
+      {
+        "id": "correct",
+        "label": "Have Legal start tracking notification deadlines immediately, scope which data and individuals are affected in parallel with the technical investigation, and begin drafting notifications with outside counsel.",
+        "type": "correct"
+      },
+      {
+        "id": "neutral",
+        "label": "Have Legal stay aware of the obligation but wait for full certainty on scope before starting any notification preparation.",
+        "type": "neutral"
+      },
+      {
+        "id": "wrong",
+        "label": "Leave the regulatory timeline unowned, assuming notifications can be handled only after remediation is fully complete.",
+        "type": "wrong"
+      }
+    ],
+    "facilitatorNotes": "Do they know their obligations and timelines? Note whether cyber insurance is engaged early (often required).",
+    "hint": "The GDPR 72-hour clock generally starts at awareness of a personal-data breach.",
+    "mitre": "TA0040 Impact / T1486 Data Encrypted for Impact"
+  },
+  {
+    "id": "inj9",
+    "order": 9,
+    "time": "45:00",
+    "title": "The Room Goes Quiet",
+    "phase": "Communication",
+    "nist": "Post-Incident Activity",
+    "description": "Executives convene. On the screen behind them, the attacker's portal shows a countdown, ticking down toward the 72-hour deadline. Three decisions can no longer be avoided: whether to pay, how to recover, and what - if anything - to tell the public. Everyone in the room knows this decision will define how the company is remembered.",
+    "evidence": "Concise IC brief: scope, business impact (ZMW 2,000,000/hr), backup status pending, legal/insurer position on payment.",
+    "choices": [
+      {
+        "id": "correct",
+        "label": "Have executives make a documented decision after consulting Legal, Cyber Insurance, and Law Enforcement, with the rationale logged.",
+        "type": "correct"
+      },
+      {
+        "id": "neutral",
+        "label": "Defer the decision repeatedly with no firm call made while the countdown continues to run.",
+        "type": "neutral"
+      },
+      {
+        "id": "wrong",
+        "label": "Have a single executive unilaterally decide to pay the ransom in cryptocurrency without consulting Legal, Insurance, or checking sanctions exposure.",
+        "type": "wrong"
+      }
+    ],
+    "facilitatorNotes": "The IC brief should be decision-oriented and brief. Executives set risk tolerance; avoid rushing to pay.",
+    "hint": "Paying does not guarantee recovery and may carry sanctions risk — weigh against tested backups.",
+    "mitre": "TA0040 Impact / T1486 Data Encrypted for Impact"
+  },
+  {
+    "id": "inj10",
+    "order": 10,
+    "time": "50:00",
+    "title": "What's Actually Recoverable",
+    "phase": "Recovery",
+    "nist": "Containment, Eradication & Recovery",
+    "description": "Amid the chaos, a piece of good news arrives - with a catch. The sysadmin reports that immutable offsite backups for FIN-SRV-01 from last night appear intact. Recovery is possible. But the restore will take 6 to 8 hours, and worse: two other affected servers have no recent backups at all.",
+    "evidence": "Backup console: FIN-SRV-01 last good immutable snapshot 02:00 today; APP-SRV-03 last backup 9 days ago; DEV-SRV-02 no backups.",
+    "choices": [
+      {
+        "id": "correct",
+        "label": "Validate backup integrity before restoring, prioritize recovery by business criticality, and flag the two unprotected servers as an urgent gap needing compensating controls.",
+        "type": "correct"
+      },
+      {
+        "id": "neutral",
+        "label": "Restore FIN-SRV-01 without validating backup integrity first, with no plan yet for the two servers lacking backups.",
+        "type": "neutral"
+      },
+      {
+        "id": "wrong",
+        "label": "Restore all systems immediately from whatever backups are available, without verifying they are clean first.",
+        "type": "wrong"
+      }
+    ],
+    "facilitatorNotes": "Look for verification before restore and eradication-before-recovery discipline. Surface backup gaps as findings.",
+    "hint": "Never restore into a still-compromised environment — eradicate first, verify backups are clean.",
+    "mitre": "TA0040 Impact / T1486 Data Encrypted for Impact"
+  },
+  {
+    "id": "inj11",
+    "order": 11,
+    "time": "55:00",
+    "title": "Catching Breath",
+    "phase": "Recovery",
+    "nist": "Post-Incident Activity",
+    "description": "The facilitator calls for a pause. The immediate crisis is behind the room, but the reflection is just beginning. Each workstream - SOC, IT, Legal, Comms, Executives - is asked the same question: what worked, and what gap did you just discover about your own readiness?",
+    "evidence": "Decision log to date; observer notes; open action items.",
+    "choices": [
+      {
+        "id": "correct",
+        "label": "Have each workstream share one specific thing that worked and one specific gap, logged with an owner for the After Action Report.",
+        "type": "correct"
+      },
+      {
+        "id": "neutral",
+        "label": "Give generic feedback such as communication could be better, with no specifics and no owner assigned.",
+        "type": "neutral"
+      },
+      {
+        "id": "wrong",
+        "label": "Have workstreams get defensive and downplay gaps, with no findings documented at all.",
+        "type": "wrong"
+      }
+    ],
+    "facilitatorNotes": "Keep it blameless and specific. Convert observations into concrete, ownable actions for the report.",
+    "hint": "Focus on systemic fixes (process, tooling, training) rather than individual mistakes.",
+    "mitre": "TA0040 Impact / T1486 Data Encrypted for Impact"
+  },
+  {
+    "id": "inj12",
+    "order": 12,
+    "time": "60:00",
+    "title": "Closing the Book",
+    "phase": "Recovery",
+    "nist": "Post-Incident Activity",
+    "description": "The exercise concludes. The facilitator has one final job: confirm the scores are fair, confirm the decision log tells the true story of what happened over the last hour, and generate the After Action Report that will decide whether any of this hour's lessons ever get acted on.",
+    "evidence": "Completed scorecard; full decision log; consolidated recommendations.",
+    "choices": [
+      {
+        "id": "correct",
+        "label": "Finalize scoring with participant input, cross-check the decision log against the full timeline, and generate an After Action Report with owned, dated remediation actions.",
+        "type": "correct"
+      },
+      {
+        "id": "neutral",
+        "label": "Complete scoring quickly with limited input, and generate an After Action Report with generic, unowned recommendations.",
+        "type": "neutral"
+      },
+      {
+        "id": "wrong",
+        "label": "Skip or rush scoring after participants leave, leave the decision log incomplete, and never generate or distribute an After Action Report.",
+        "type": "wrong"
+      }
+    ],
+    "facilitatorNotes": "Thank participants, reinforce the no-fault ethos, and set expectations for the written report and follow-ups.",
+    "hint": "A tabletop only pays off if actions are tracked to closure — assign owners and due dates.",
+    "mitre": "TA0040 Impact / T1486 Data Encrypted for Impact"
+  }
+]
