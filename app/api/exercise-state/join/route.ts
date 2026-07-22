@@ -42,16 +42,16 @@ export async function POST(request: Request) {
       await writePromise
     }
 
+    const newParticipant = {
+      id: crypto.randomUUID(),
+      deviceId: participant.deviceId,
+      name: participant.name,
+      roleId: participant.roleId,
+    }
+
     writePromise = (async () => {
       const current = readStateFromDisk()
       const participants = Array.isArray(current.participants) ? current.participants : []
-      
-      const newParticipant = {
-        id: crypto.randomUUID(),
-        deviceId: participant.deviceId,
-        name: participant.name,
-        roleId: participant.roleId,
-      }
       
       const exists = participants.some(
         (p: Record<string, unknown>) => p.deviceId === participant.deviceId
