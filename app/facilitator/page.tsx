@@ -19,7 +19,7 @@ const ROLE_CHART_COLORS = [
 ]
 
 export default function FacilitatorPage() {
-  const { state, setActiveInject, resetAll, hydrated } = useExercise()
+  const { state, setActiveInject, resetAll, hydrated, toggleInject } = useExercise()
   const activeInject = INJECTS.find((inject) => inject.id === state.activeInjectId)
 
   const roleCounts = useMemo(() => {

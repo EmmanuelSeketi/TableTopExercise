@@ -43,7 +43,7 @@ export interface Inject {
   choices: {
     id: string
     label: string
-    type: 'correct' | 'neutral' | 'wrong'
+    type: string
   }[]
   facilitatorNotes: string
   hint: string
@@ -341,7 +341,7 @@ export const TIMELINE: TimelineEvent[] = [
   { id: 't60', time: '60:00', minute: 60, phase: 'Post-Incident', title: 'Exercise ends', detail: 'Exercise concludes. Participants complete scoring and the After Action Report is generated.', injectId: 'inj12' },
 ]
 
-export const INJECTS: Inject[] = (await import('@/data/injects.json')).default
+export const INJECTS: Inject[] = (await import('@/data/injects.json')).default as Inject[]
 
 export const SCORE_CATEGORIES: ScoreCategory[] = [
   { id: 'detection', label: 'Incident Detection', description: 'Speed and accuracy of identifying the intrusion.' },

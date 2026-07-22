@@ -170,7 +170,10 @@ function deepMergeClient(target: Record<string, unknown>, source: Record<string,
     const targetValue = target[key]
 
     if (isPlainObject(sourceValue) && isPlainObject(targetValue)) {
-      result[key] = deepMergeClient(targetValue, sourceValue)
+      result[key] = deepMergeClient(
+        targetValue as Record<string, unknown>,
+        sourceValue as Record<string, unknown>
+      )
     } else if (sourceValue !== undefined) {
       result[key] = sourceValue
     }
@@ -274,17 +277,17 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
       const remote = await fetchStateFromServer()
       if (!remote) return
       setState((prev) => {
-        const next = { ...prev }
+        const next = { ...(prev as unknown as Record<string, unknown>) }
         for (const key of Object.keys(remote)) {
           const sourceValue = (remote as Record<string, unknown>)[key]
-          const targetValue = (prev as Record<string, unknown>)[key]
+          const targetValue = (prev as unknown as Record<string, unknown>)[key]
           if (isPlainObject(sourceValue) && isPlainObject(targetValue)) {
             (next as Record<string, unknown>)[key] = deepMergeClient(targetValue as Record<string, unknown>, sourceValue as Record<string, unknown>)
           } else if (sourceValue !== undefined) {
             (next as Record<string, unknown>)[key] = sourceValue
           }
         }
-        return next as ExerciseState
+        return next as unknown as ExerciseState
       })
     }, 5000)
 

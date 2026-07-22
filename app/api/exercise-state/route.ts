@@ -74,7 +74,7 @@ function deepMerge(target: Record<string, unknown>, source: Record<string, unkno
     const targetValue = target[key]
 
     if (isPlainObject(sourceValue) && isPlainObject(targetValue)) {
-      result[key] = deepMerge(targetValue, sourceValue)
+      result[key] = deepMerge(targetValue as Record<string, unknown>, sourceValue as Record<string, unknown>)
     } else if (sourceValue !== undefined) {
       result[key] = sourceValue
     }
