@@ -30,22 +30,13 @@ function writeStateToDiskAtomic(state: Record<string, unknown>) {
   fs.renameSync(tmpFile, DATA_FILE)
 }
 
-export async function GET() {
-  try {
-    const state = readStateFromDisk()
-    return NextResponse.json(state)
-  } catch {
-    return NextResponse.json({}, { status: 500 })
-  }
-}
-
 export async function POST(request: Request) {
   try {
     if (!checkAuth(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const patch = (await request.json()) as Record<string, unknown>
+    const participant = (await request.json()) as Record<string, unknown>
 
     if (writePromise) {
       await writePromise
@@ -53,40 +44,38 @@ export async function POST(request: Request) {
 
     writePromise = (async () => {
       const current = readStateFromDisk()
-      const merged = deepMerge(current, patch)
-      writeStateToDiskAtomic(merged)
+      const participants = Array.isArray(current.participants) ? current.participants : []
+      
+      const newParticipant = {
+        id: crypto.randomUUID(),
+        deviceId: participant.deviceId,
+        name: participant.name,
+        roleId: participant.roleId,
+      }
+      
+      const exists = participants.some(
+        (p: Record<string, unknown>) => p.deviceId === participant.deviceId
+      )
+      
+      if (!exists) {
+        participants.push(newParticipant)
+      }
+      
+      writeStateToDiskAtomic({
+        ...current,
+        participants,
+      })
     })()
 
     await writePromise
 
     const state = readStateFromDisk()
-    return NextResponse.json(state)
+    return NextResponse.json({ 
+      success: true, 
+      participant: newParticipant,
+      totalParticipants: (state.participants as Record<string, unknown>[]).length 
+    })
   } catch {
-    return NextResponse.json({}, { status: 500 })
+    return NextResponse.json({ error: 'Failed to join' }, { status: 500 })
   }
-}
-
-function deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
-  const result = { ...target }
-
-  for (const key of Object.keys(source)) {
-    const sourceValue = source[key]
-    const targetValue = target[key]
-
-    if (isPlainObject(sourceValue) && isPlainObject(targetValue)) {
-      result[key] = deepMerge(targetValue, sourceValue)
-    } else if (sourceValue !== undefined) {
-      result[key] = sourceValue
-    }
-  }
-
-  return result
-}
-
-function isPlainObject(value: unknown): boolean {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    return false
-  }
-  const proto = Object.getPrototypeOf(value)
-  return proto === Object.prototype || proto === null
 }

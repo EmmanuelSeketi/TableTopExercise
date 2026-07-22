@@ -28,6 +28,7 @@ export function ParticipantsSection({ onContinue }: ParticipantsSectionProps) {
   const [name, setName] = useState('')
   const [roleId, setRoleId] = useState(ROLES[0]?.id ?? 'incident-commander')
   const [deviceId, setDeviceId] = useState<string | null>(null)
+  const [joining, setJoining] = useState(false)
 
   useEffect(() => {
     setDeviceId(getDeviceId())
@@ -35,13 +36,33 @@ export function ParticipantsSection({ onContinue }: ParticipantsSectionProps) {
 
   const canSubmit = name.trim().length > 0 && roleId.length > 0 && deviceId != null
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!canSubmit || !deviceId) return
-    addParticipant({ deviceId, name: name.trim(), roleId })
-    setName('')
-    if (onContinue) {
-      onContinue()
+    if (!canSubmit || !deviceId || joining) return
+    
+    setJoining(true)
+    try {
+      const secret = process.env.NEXT_PUBLIC_EXERCISE_API_SECRET
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (secret) headers['x-api-secret'] = secret
+      
+      const response = await fetch('/api/exercise-state/join', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ deviceId, name: name.trim(), roleId }),
+      })
+      
+      if (response.ok) {
+        addParticipant({ deviceId, name: name.trim(), roleId })
+        setName('')
+        if (onContinue) {
+          onContinue()
+        }
+      }
+    } catch {
+      // ignore join failures
+    } finally {
+      setJoining(false)
     }
   }
 
@@ -88,8 +109,8 @@ export function ParticipantsSection({ onContinue }: ParticipantsSectionProps) {
             </div>
 
             <div className="flex items-end gap-3 sm:col-span-2">
-              <Button type="submit" className="gap-2 bg-[#0a5763] text-white hover:bg-[#0a5763]/80 focus-visible:ring-[#0a5763]/50" disabled={!canSubmit}>
-                <UserPlus className="size-4" /> Join exercise
+              <Button type="submit" className="gap-2 bg-[#0a5763] text-white hover:bg-[#0a5763]/80 focus-visible:ring-[#0a5763]/50" disabled={!canSubmit || joining}>
+                <UserPlus className="size-4" /> {joining ? 'Joining...' : 'Join exercise'}
               </Button>
             </div>
           </form>
