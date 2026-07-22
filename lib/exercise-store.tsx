@@ -162,6 +162,31 @@ async function fetchStateFromServer(): Promise<Partial<ExerciseState> | null> {
   }
 }
 
+function deepMergeClient(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
+  const result = { ...target }
+
+  for (const key of Object.keys(source)) {
+    const sourceValue = source[key]
+    const targetValue = target[key]
+
+    if (isPlainObject(sourceValue) && isPlainObject(targetValue)) {
+      result[key] = deepMergeClient(targetValue, sourceValue)
+    } else if (sourceValue !== undefined) {
+      result[key] = sourceValue
+    }
+  }
+
+  return result
+}
+
+function isPlainObject(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false
+  }
+  const proto = Object.getPrototypeOf(value)
+  return proto === Object.prototype || proto === null
+}
+
 async function pushStateToServer(patch: Record<string, unknown>): Promise<void> {
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -190,14 +215,15 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
       const remote = await fetchStateFromServer()
       if (cancelled) return
 
-      if (remote) {
+      const hasRemoteData = remote && Object.keys(remote).length > 0
+
+      if (hasRemoteData) {
         setState((prev) => ({
           ...prev,
           ...remote,
           settings: { ...prev.settings, ...(remote.settings as Partial<Settings>) },
           aarNotes: { ...prev.aarNotes, ...(remote.aarNotes as Partial<ExerciseState['aarNotes']>) },
         }))
-        serverHydrated.current = true
       } else {
         try {
           const raw = localStorage.getItem(STORAGE_KEY)
@@ -215,6 +241,7 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      serverHydrated.current = true
       setHydrated(true)
     }
 
@@ -226,7 +253,6 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!hydrated) return
-    if (!serverHydrated.current) return
     if (!state.settings.autoSave) return
 
     const patch = {
@@ -247,12 +273,19 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
     const interval = setInterval(async () => {
       const remote = await fetchStateFromServer()
       if (!remote) return
-      setState((prev) => ({
-        ...prev,
-        ...remote,
-        settings: { ...prev.settings, ...(remote.settings as Partial<Settings>) },
-        aarNotes: { ...prev.aarNotes, ...(remote.aarNotes as Partial<ExerciseState['aarNotes']>) },
-      }))
+      setState((prev) => {
+        const next = { ...prev }
+        for (const key of Object.keys(remote)) {
+          const sourceValue = (remote as Record<string, unknown>)[key]
+          const targetValue = (prev as Record<string, unknown>)[key]
+          if (isPlainObject(sourceValue) && isPlainObject(targetValue)) {
+            (next as Record<string, unknown>)[key] = deepMergeClient(targetValue as Record<string, unknown>, sourceValue as Record<string, unknown>)
+          } else if (sourceValue !== undefined) {
+            (next as Record<string, unknown>)[key] = sourceValue
+          }
+        }
+        return next as ExerciseState
+      })
     }, 5000)
 
     return () => clearInterval(interval)
