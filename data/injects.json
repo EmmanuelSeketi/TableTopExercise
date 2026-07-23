@@ -15,14 +15,14 @@
         "type": "correct"
       },
       {
-        "id": "neutral",
-        "label": "Flag the alert as suspicious and assign an analyst to review it later in the shift, with no containment action taken yet.",
-        "type": "neutral"
-      },
-      {
         "id": "wrong",
         "label": "Close the alert as a false positive since service accounts sometimes behave oddly, with no isolation and no escalation.",
         "type": "wrong"
+      },
+      {
+        "id": "neutral",
+        "label": "Flag the alert as suspicious and assign an analyst to review it later in the shift, with no containment action taken yet.",
+        "type": "neutral"
       }
     ],
     "facilitatorNotes": "Watch whether the team treats this as noise or investigates. Good teams pivot on the account and host immediately.",
@@ -37,7 +37,7 @@
     "phase": "Detection",
     "nist": "Detection & Analysis",
     "description": "Five minutes later, EDR raises a high-severity alert on the same machine. EXCEL.EXE has just spawned powershell.exe, and the command line is Base64-encoded gibberish designed to hide its true intent. Spreadsheets don't open PowerShell. Attackers do.",
-    "evidence": "EDR process tree: EXCEL.EXE → powershell.exe -enc <redacted>. Network beacon to 185.xx.xx.xx every 60s.",
+    "evidence": "EDR process tree: EXCEL.EXE \u2192 powershell.exe -enc <redacted>. Network beacon to 185.xx.xx.xx every 60s.",
     "choices": [
       {
         "id": "correct",
@@ -45,17 +45,17 @@
         "type": "correct"
       },
       {
-        "id": "neutral",
-        "label": "Acknowledge the alert and run an antivirus scan on the host, but wait for further confirmation before isolating it.",
-        "type": "neutral"
-      },
-      {
         "id": "wrong",
         "label": "Dismiss it as a known false positive caused by macros and allow the user to keep working on the machine.",
         "type": "wrong"
+      },
+      {
+        "id": "neutral",
+        "label": "Acknowledge the alert and run an antivirus scan on the host, but wait for further confirmation before isolating it.",
+        "type": "neutral"
       }
     ],
-    "facilitatorNotes": "Assess whether they preserve evidence before isolating. Both matter — sequencing is a discussion point.",
+    "facilitatorNotes": "Assess whether they preserve evidence before isolating. Both matter \u2014 sequencing is a discussion point.",
     "hint": "Host isolation via EDR keeps forensic data intact while cutting network access.",
     "mitre": "TA0002 Execution / T1059.001 PowerShell"
   },
@@ -85,7 +85,7 @@
         "type": "wrong"
       }
     ],
-    "facilitatorNotes": "This is the key declaration moment. Note the time — success criteria target declaration by 15:00.",
+    "facilitatorNotes": "This is the key declaration moment. Note the time \u2014 success criteria target declaration by 15:00.",
     "hint": "Multiple beaconing hosts = confirmed intrusion. Declare and coordinate now.",
     "mitre": "TA0001 Initial Access / T1566.001 Spearphishing Attachment"
   },
@@ -100,11 +100,6 @@
     "evidence": "Monitoring: FIN-SRV-01 SMB service down at 09:33. Scheduled task SysUpdate created 4 minutes earlier by svc_backup.",
     "choices": [
       {
-        "id": "correct",
-        "label": "Correlate this outage with the active incident rather than treating it as unrelated infrastructure, preserve logs and volatile evidence before any reboot, and have sysadmin and IR jointly assess for active ransomware encryption.",
-        "type": "correct"
-      },
-      {
         "id": "neutral",
         "label": "Restart the server to restore service quickly, without checking with IR or preserving evidence first.",
         "type": "neutral"
@@ -113,6 +108,11 @@
         "id": "wrong",
         "label": "Treat it as a routine infrastructure ticket, run standard reboot and patch troubleshooting, and make no connection to the ongoing security incident.",
         "type": "wrong"
+      },
+      {
+        "id": "correct",
+        "label": "Correlate this outage with the active incident rather than treating it as unrelated infrastructure, preserve logs and volatile evidence before any reboot, and have sysadmin and IR jointly assess for active ransomware encryption.",
+        "type": "correct"
       }
     ],
     "facilitatorNotes": "Tension between isolating (stops spread) and business impact (halts finance). Look for risk-based reasoning.",
@@ -130,6 +130,11 @@
     "evidence": "Service desk queue: 37 tickets in 10 minutes referencing reports unavailable. Two clients cite contractual SLAs.",
     "choices": [
       {
+        "id": "wrong",
+        "label": "Let account managers tell clients the company is being hacked and speculate about data theft before anything has been confirmed.",
+        "type": "wrong"
+      },
+      {
         "id": "correct",
         "label": "Give account managers a single pre-approved holding statement and route all client communication through one coordinated source, avoiding speculation about cause.",
         "type": "correct"
@@ -138,16 +143,10 @@
         "id": "neutral",
         "label": "Let each account manager explain the situation to clients in their own words, resulting in inconsistent messaging.",
         "type": "neutral"
-      },
-      {
-        "id": "wrong",
-        "label": "Let account managers tell clients the company is being hacked and speculate about data theft before anything has been confirmed.",
-        "type": "wrong"
       }
     ],
     "facilitatorNotes": "Does the team activate communications early, or stay heads-down on tech? Parallel workstreams are the goal.",
-    "hint": "External pressure will grow — get an approved holding statement ready before you need it.",
-    "nist": "Containment, Eradication & Recovery"
+    "hint": "External pressure will grow \u2014 get an approved holding statement ready before you need it."
   },
   {
     "id": "inj6",
@@ -176,7 +175,7 @@
       }
     ],
     "facilitatorNotes": "Surface the ransom-payment question and who has authority. Sanctions/insurer implications should come up.",
-    "hint": "Exfiltration claims change notification obligations — validate but assume data loss is possible.",
+    "hint": "Exfiltration claims change notification obligations \u2014 validate but assume data loss is possible.",
     "mitre": "TA0040 Impact / T1486 Data Encrypted for Impact"
   },
   {
@@ -190,9 +189,9 @@
     "evidence": "Reporter email with newsroom signature; a client has apparently posted about the outage on social media.",
     "choices": [
       {
-        "id": "correct",
-        "label": "Have PR/Comms issue a brief holding statement acknowledging a service disruption under investigation, without confirming any breach details, coordinated with Legal before it's sent.",
-        "type": "correct"
+        "id": "wrong",
+        "label": "Have an untrained employee confirm on the record that the company was hacked and ransomed.",
+        "type": "wrong"
       },
       {
         "id": "neutral",
@@ -200,12 +199,12 @@
         "type": "neutral"
       },
       {
-        "id": "wrong",
-        "label": "Have an untrained employee confirm on the record that the company was hacked and ransomed.",
-        "type": "wrong"
+        "id": "correct",
+        "label": "Have PR/Comms issue a brief holding statement acknowledging a service disruption under investigation, without confirming any breach details, coordinated with Legal before it's sent.",
+        "type": "correct"
       }
     ],
-    "facilitatorNotes": "Check for message discipline — no one should freelance to the press. Legal review of external statements.",
+    "facilitatorNotes": "Check for message discipline \u2014 no one should freelance to the press. Legal review of external statements.",
     "hint": "Acknowledge awareness and commitment to clients without confirming unverified specifics.",
     "mitre": "TA0040 Impact / T1486 Data Encrypted for Impact"
   },
@@ -220,14 +219,14 @@
     "evidence": "Sample exfiltrated filenames include EU client folders; data map indicates PII and financial account data.",
     "choices": [
       {
-        "id": "correct",
-        "label": "Have Legal start tracking notification deadlines immediately, scope which data and individuals are affected in parallel with the technical investigation, and begin drafting notifications with outside counsel.",
-        "type": "correct"
-      },
-      {
         "id": "neutral",
         "label": "Have Legal stay aware of the obligation but wait for full certainty on scope before starting any notification preparation.",
         "type": "neutral"
+      },
+      {
+        "id": "correct",
+        "label": "Have Legal start tracking notification deadlines immediately, scope which data and individuals are affected in parallel with the technical investigation, and begin drafting notifications with outside counsel.",
+        "type": "correct"
       },
       {
         "id": "wrong",
@@ -250,6 +249,11 @@
     "evidence": "Concise IC brief: scope, business impact (ZMW 2,000,000/hr), backup status pending, legal/insurer position on payment.",
     "choices": [
       {
+        "id": "wrong",
+        "label": "Have a single executive unilaterally decide to pay the ransom in cryptocurrency without consulting Legal, Insurance, or checking sanctions exposure.",
+        "type": "wrong"
+      },
+      {
         "id": "correct",
         "label": "Have executives make a documented decision after consulting Legal, Cyber Insurance, and Law Enforcement, with the rationale logged.",
         "type": "correct"
@@ -258,15 +262,10 @@
         "id": "neutral",
         "label": "Defer the decision repeatedly with no firm call made while the countdown continues to run.",
         "type": "neutral"
-      },
-      {
-        "id": "wrong",
-        "label": "Have a single executive unilaterally decide to pay the ransom in cryptocurrency without consulting Legal, Insurance, or checking sanctions exposure.",
-        "type": "wrong"
       }
     ],
     "facilitatorNotes": "The IC brief should be decision-oriented and brief. Executives set risk tolerance; avoid rushing to pay.",
-    "hint": "Paying does not guarantee recovery and may carry sanctions risk — weigh against tested backups.",
+    "hint": "Paying does not guarantee recovery and may carry sanctions risk \u2014 weigh against tested backups.",
     "mitre": "TA0040 Impact / T1486 Data Encrypted for Impact"
   },
   {
@@ -285,18 +284,18 @@
         "type": "correct"
       },
       {
-        "id": "neutral",
-        "label": "Restore FIN-SRV-01 without validating backup integrity first, with no plan yet for the two servers lacking backups.",
-        "type": "neutral"
-      },
-      {
         "id": "wrong",
         "label": "Restore all systems immediately from whatever backups are available, without verifying they are clean first.",
         "type": "wrong"
+      },
+      {
+        "id": "neutral",
+        "label": "Restore FIN-SRV-01 without validating backup integrity first, with no plan yet for the two servers lacking backups.",
+        "type": "neutral"
       }
     ],
     "facilitatorNotes": "Look for verification before restore and eradication-before-recovery discipline. Surface backup gaps as findings.",
-    "hint": "Never restore into a still-compromised environment — eradicate first, verify backups are clean.",
+    "hint": "Never restore into a still-compromised environment \u2014 eradicate first, verify backups are clean.",
     "mitre": "TA0040 Impact / T1486 Data Encrypted for Impact"
   },
   {
@@ -340,9 +339,9 @@
     "evidence": "Completed scorecard; full decision log; consolidated recommendations.",
     "choices": [
       {
-        "id": "correct",
-        "label": "Finalize scoring with participant input, cross-check the decision log against the full timeline, and generate an After Action Report with owned, dated remediation actions.",
-        "type": "correct"
+        "id": "wrong",
+        "label": "Skip or rush scoring after participants leave, leave the decision log incomplete, and never generate or distribute an After Action Report.",
+        "type": "wrong"
       },
       {
         "id": "neutral",
@@ -350,13 +349,13 @@
         "type": "neutral"
       },
       {
-        "id": "wrong",
-        "label": "Skip or rush scoring after participants leave, leave the decision log incomplete, and never generate or distribute an After Action Report.",
-        "type": "wrong"
+        "id": "correct",
+        "label": "Finalize scoring with participant input, cross-check the decision log against the full timeline, and generate an After Action Report with owned, dated remediation actions.",
+        "type": "correct"
       }
     ],
     "facilitatorNotes": "Thank participants, reinforce the no-fault ethos, and set expectations for the written report and follow-ups.",
-    "hint": "A tabletop only pays off if actions are tracked to closure — assign owners and due dates.",
+    "hint": "A tabletop only pays off if actions are tracked to closure \u2014 assign owners and due dates.",
     "mitre": "TA0040 Impact / T1486 Data Encrypted for Impact"
   }
 ]

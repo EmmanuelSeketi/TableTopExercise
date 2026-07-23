@@ -64,17 +64,17 @@ export default function ParticipantPage() {
     ? {
         correct: {
           label: 'Correct answer',
-          className: 'border-emerald-500 bg-emerald-500/20 text-emerald-50',
+          className: 'border-emerald-500 bg-emerald-500/20 text-black dark:text-white',
           icon: <CheckCircle2 className="size-4 text-emerald-400" />,
         },
         neutral: {
           label: 'Neutral Answer',
-          className: 'border-amber-500 bg-amber-500/10 text-amber-50',
+          className: 'border-amber-500 bg-amber-500/10 text-black dark:text-white',
           icon: <Minus className="size-4 text-amber-400" />,
         },
         wrong: {
           label: 'Wrong answer',
-          className: 'border-red-500 bg-red-500/10 text-red-50',
+          className: 'border-red-500 bg-red-500/10 text-black dark:text-white',
           icon: <XCircle className="size-4 text-red-400" />,
         },
       }[selectedType ?? existingChoice?.type ?? 'wrong']
