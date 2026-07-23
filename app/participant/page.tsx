@@ -92,7 +92,7 @@ export default function ParticipantPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-[#0a5763]">Participant view</CardTitle>
+          <CardTitle className="text-[#0a5763]">Welcome to the Exercise!</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 p-5">
           {activeInject ? (
@@ -163,9 +163,12 @@ export default function ParticipantPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-sm font-medium text-foreground">No active inject selected yet.</p>
+              <p className="text-sm font-medium text-foreground">SCENARIO</p>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                Wait for the facilitator to activate the next inject.
+                It is 09:14 AM  on a Tuesday morning. Mutinta Banda, a senior accountant in the Finance department at Meridian Financial Group, receives an email that looks like it is from a vendor the company already works with. The subject line reads “Updated Q3 Invoice – Action Required,” and it includes an attached spreadsheet.
+Mutinta opens the attachment. A pop-up tells her she needs to click a button to view the file properly, so she does. Without realizing it, that click quietly installs harmful software on her computer. Within minutes, an attacker has a foothold on her machine and starts exploring the rest of the company's network from there.
+Over the next hour, what started as one employee opening one email escalates into a company-wide ransomware attack that knocks out the finance department's file server and disrupts business across the organization.
+
               </p>
             </div>
           )}
