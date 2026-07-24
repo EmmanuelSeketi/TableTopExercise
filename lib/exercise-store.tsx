@@ -258,15 +258,18 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
     if (!hydrated) return
     if (!state.settings.autoSave) return
 
-    const patch = {
+    const patch: Record<string, unknown> = {
       settings: state.settings,
-      activeInjectId: state.activeInjectId,
       completedInjects: state.completedInjects,
       facilitatorPhase: state.facilitatorPhase,
       decisions: state.decisions,
       scores: state.scores,
       aarNotes: state.aarNotes,
       actionItems: state.actionItems,
+    }
+
+    if (state.activeInjectId != null) {
+      patch.activeInjectId = state.activeInjectId
     }
 
     pushStateToServer(patch)
@@ -396,6 +399,7 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
 
   const setActiveInject = useCallback((injectId: string | null) => {
     setState((p) => ({ ...p, activeInjectId: injectId }))
+    pushStateToServer({ activeInjectId: injectId })
   }, [])
 
   const setFacilitatorPhase = useCallback((phase: ExerciseState['facilitatorPhase']) => {

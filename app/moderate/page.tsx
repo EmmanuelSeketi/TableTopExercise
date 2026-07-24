@@ -58,8 +58,8 @@ export default function ModeratePage() {
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-sm font-medium text-foreground">No active inject selected.</p>
-                <p className="text-sm leading-relaxed text-muted-foreground">Select an inject below to make it visible to participants and the projector.</p>
+                <p className="text-sm font-medium text-foreground">Overview</p>
+                <p className="text-sm leading-relaxed text-muted-foreground">It is 09:14 AM on a Tuesday morning. Mutinta Banda, a senior accountant in the Finance department at Meridian Financial Group, receives an email that looks like it is from a vendor the company already works with. The subject line reads “Updated Q3 Invoice – Action Required,” and it includes an attached spreadsheet. Mutinta opens the attachment. A pop-up tells her she needs to click a button to view the file properly, so she does. Without realizing it, that click quietly installs harmful software on her computer. Within minutes, an attacker has a foothold on her machine and starts exploring the rest of the company's network from there. Over the next hour, what started as one employee opening one email escalates into a company-wide ransomware attack that knocks out the finance department's file server and disrupts business across the organization.</p>
               </div>
             )}
           </CardContent>
