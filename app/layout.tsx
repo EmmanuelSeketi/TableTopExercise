@@ -15,13 +15,12 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Table Top Exercise',
+  title: 'Tabletop Exercise',
   description:
     'Facilitate professional 60-minute cybersecurity incident response tabletop exercises. Manage scenarios, injects, decision logs, scoring, and generate After Action Reports.',
   generator: 'v0.app',
   icons: {
-    icon: '/fav-icon.png',
-    apple: '/apple-icon.png',
+    icon: '/icon.svg',
   },
 }
 

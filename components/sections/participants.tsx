@@ -24,7 +24,7 @@ interface ParticipantsSectionProps {
 }
 
 export function ParticipantsSection({ onContinue }: ParticipantsSectionProps) {
-  const { addParticipant } = useExercise()
+  const { addParticipant, setSyncError } = useExercise()
   const [name, setName] = useState('')
   const [roleId, setRoleId] = useState(ROLES[0]?.id ?? 'incident-commander')
   const [deviceId, setDeviceId] = useState<string | null>(null)
@@ -51,16 +51,17 @@ export function ParticipantsSection({ onContinue }: ParticipantsSectionProps) {
         headers,
         body: JSON.stringify({ deviceId, name: name.trim(), roleId }),
       })
-      
-      if (response.ok) {
-        addParticipant({ deviceId, name: name.trim(), roleId })
-        setName('')
-        if (onContinue) {
-          onContinue()
-        }
+      if (!response.ok) {
+        const result = (await response.json().catch(() => null)) as { error?: string } | null
+        throw new Error(result?.error ?? `Participant registration failed (${response.status})`)
       }
-    } catch {
-      // ignore join failures
+
+      addParticipant({ deviceId, name: name.trim(), roleId })
+      setSyncError(null)
+      setName('')
+      if (onContinue) onContinue()
+    } catch (error) {
+      setSyncError(error instanceof Error ? error.message : 'Participant registration failed')
     } finally {
       setJoining(false)
     }

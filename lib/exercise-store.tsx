@@ -76,8 +76,6 @@ export interface ActionItem {
   priority: 'High' | 'Medium' | 'Low'
 }
 
-const STORAGE_KEY = 'sentinel-ir-exercise-v1'
-
 const defaultState: ExerciseState = {
   settings: {
     title: EXERCISE_META.defaultTitle,
@@ -108,9 +106,24 @@ const defaultState: ExerciseState = {
   actionItems: [],
 }
 
+const persistedKeys = [
+  'settings',
+  'activeInjectId',
+  'completedInjects',
+  'facilitatorPhase',
+  'decisions',
+  'scores',
+  'aarNotes',
+  'actionItems',
+] as const satisfies readonly (keyof ExerciseState)[]
+
+let stateWriteQueue: Promise<void> = Promise.resolve()
+
 interface StoreContextValue {
   state: ExerciseState
   hydrated: boolean
+  syncError: string | null
+  setSyncError: (error: string | null) => void
   start: () => void
   pause: () => void
   reset: () => void
@@ -152,14 +165,13 @@ function playBeep() {
   }
 }
 
-async function fetchStateFromServer(): Promise<Partial<ExerciseState> | null> {
-  try {
-    const response = await fetch('/api/exercise-state', { cache: 'no-store' })
-    if (!response.ok) return null
-    return (await response.json()) as Partial<ExerciseState>
-  } catch {
-    return null
+async function fetchStateFromServer(): Promise<Partial<ExerciseState>> {
+  const response = await fetch('/api/exercise-state', { cache: 'no-store' })
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { error?: string } | null
+    throw new Error(body?.error ?? `Exercise state request failed (${response.status})`)
   }
+  return (await response.json()) as Partial<ExerciseState>
 }
 
 function deepMergeClient(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
@@ -182,7 +194,7 @@ function deepMergeClient(target: Record<string, unknown>, source: Record<string,
   return result
 }
 
-function isPlainObject(value: unknown): boolean {
+function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     return false
   }
@@ -191,61 +203,85 @@ function isPlainObject(value: unknown): boolean {
 }
 
 async function pushStateToServer(patch: Record<string, unknown>): Promise<void> {
-  try {
+  const write = stateWriteQueue.then(async () => {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
     const secret = process.env.NEXT_PUBLIC_EXERCISE_API_SECRET
     if (secret) headers['x-api-secret'] = secret
-    await fetch('/api/exercise-state', {
+    const response = await fetch('/api/exercise-state', {
       method: 'POST',
       headers,
       body: JSON.stringify(patch),
     })
-  } catch {
-    // ignore write failures
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as { error?: string } | null
+      throw new Error(body?.error ?? `Exercise state save failed (${response.status})`)
+    }
+  })
+  stateWriteQueue = write.catch(() => {})
+  return write
+}
+
+function mergeExerciseState(
+  previous: ExerciseState,
+  remote: Partial<ExerciseState>
+): ExerciseState {
+  return {
+    ...previous,
+    ...remote,
+    settings: { ...previous.settings, ...(remote.settings as Partial<Settings>) },
+    aarNotes: {
+      ...previous.aarNotes,
+      ...(remote.aarNotes as Partial<ExerciseState['aarNotes']>),
+    },
   }
+}
+
+function statesEqual(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right)
+}
+
+function diffObject(previous: Record<string, unknown>, current: Record<string, unknown>) {
+  const patch: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(current)) {
+    const oldValue = previous[key]
+    if (statesEqual(oldValue, value)) continue
+    if (isPlainObject(oldValue) && isPlainObject(value)) {
+      const nested = diffObject(oldValue, value)
+      if (Object.keys(nested).length > 0) patch[key] = nested
+    } else {
+      patch[key] = value
+    }
+  }
+  return patch
 }
 
 export function ExerciseProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<ExerciseState>(defaultState)
   const [hydrated, setHydrated] = useState(false)
+  const [serverReady, setServerReady] = useState(false)
+  const [syncError, setSyncError] = useState<string | null>(null)
   const notifiedRef = useRef<Set<number>>(new Set())
-  const serverHydrated = useRef(false)
-
+  const lastSyncedStateRef = useRef<ExerciseState | null>(null)
+  const pendingWritesRef = useRef(0)
   useEffect(() => {
     let cancelled = false
 
     async function hydrate() {
-      const remote = await fetchStateFromServer()
-      if (cancelled) return
-
-      const hasRemoteData = remote && Object.keys(remote).length > 0
-
-      if (hasRemoteData) {
-        setState((prev) => ({
-          ...prev,
-          ...remote,
-          settings: { ...prev.settings, ...(remote.settings as Partial<Settings>) },
-          aarNotes: { ...prev.aarNotes, ...(remote.aarNotes as Partial<ExerciseState['aarNotes']>) },
-        }))
-      } else {
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY)
-          if (raw) {
-            const parsed = JSON.parse(raw) as Partial<ExerciseState>
-            setState((prev) => ({
-              ...prev,
-              ...parsed,
-              settings: { ...prev.settings, ...parsed.settings },
-              aarNotes: { ...prev.aarNotes, ...parsed.aarNotes },
-            }))
-          }
-        } catch {
-          // ignore malformed storage
+      try {
+        const remote = await fetchStateFromServer()
+        if (cancelled) return
+        const initialState = mergeExerciseState(defaultState, remote)
+        lastSyncedStateRef.current = initialState
+        setState(initialState)
+        setServerReady(true)
+        setSyncError(null)
+      } catch (error) {
+        if (!cancelled) {
+          setSyncError(error instanceof Error ? error.message : 'Could not connect to exercise storage')
         }
+      } finally {
+        if (!cancelled) setHydrated(true)
       }
-
-      serverHydrated.current = true
-      setHydrated(true)
     }
 
     hydrate()
@@ -255,50 +291,95 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (!hydrated) return
-    if (!state.settings.autoSave) return
+    if (!hydrated || serverReady) return
 
-    const patch: Record<string, unknown> = {
-      settings: state.settings,
-      completedInjects: state.completedInjects,
-      facilitatorPhase: state.facilitatorPhase,
-      decisions: state.decisions,
-      scores: state.scores,
-      aarNotes: state.aarNotes,
-      actionItems: state.actionItems,
-    }
-
-    if (state.activeInjectId != null) {
-      patch.activeInjectId = state.activeInjectId
-    }
-
-    pushStateToServer(patch)
-
+    let cancelled = false
     const interval = setInterval(async () => {
-      const remote = await fetchStateFromServer()
-      if (!remote) return
-      setState((prev) => {
-        const next = { ...(prev as unknown as Record<string, unknown>) }
-        for (const key of Object.keys(remote)) {
-          const sourceValue = (remote as Record<string, unknown>)[key]
-          const targetValue = (prev as unknown as Record<string, unknown>)[key]
-          if (isPlainObject(sourceValue) && isPlainObject(targetValue)) {
-            (next as Record<string, unknown>)[key] = deepMergeClient(targetValue as Record<string, unknown>, sourceValue as Record<string, unknown>)
-          } else if (sourceValue !== undefined) {
-            (next as Record<string, unknown>)[key] = sourceValue
-          }
+      try {
+        const remote = await fetchStateFromServer()
+        if (cancelled) return
+        const initialState = mergeExerciseState(defaultState, remote)
+        lastSyncedStateRef.current = initialState
+        setState(initialState)
+        setServerReady(true)
+        setSyncError(null)
+      } catch (error) {
+        if (!cancelled) {
+          setSyncError(error instanceof Error ? error.message : 'Could not connect to exercise storage')
         }
-        return next as unknown as ExerciseState
-      })
+      }
     }, 5000)
 
-    return () => clearInterval(interval)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [hydrated, serverReady])
+
+  useEffect(() => {
+    if (!hydrated) return
+    if (!serverReady) return
+    if (!state.settings.autoSave) return
+
+    const lastSyncedState = lastSyncedStateRef.current
+    if (!lastSyncedState) return
+    const patch = diffObject(
+      Object.fromEntries(persistedKeys.map((key) => [key, lastSyncedState[key]])),
+      Object.fromEntries(persistedKeys.map((key) => [key, state[key]])),
+    )
+    if (Object.keys(patch).length === 0) return
+
+    pendingWritesRef.current += 1
+    pushStateToServer(patch).then(
+      () => {
+        lastSyncedStateRef.current = deepMergeClient(
+          (lastSyncedStateRef.current ?? defaultState) as unknown as Record<string, unknown>,
+          patch,
+        ) as unknown as ExerciseState
+        setSyncError(null)
+      },
+      (error: unknown) => {
+        setSyncError(error instanceof Error ? error.message : 'Could not save exercise state')
+      },
+    ).finally(() => {
+      pendingWritesRef.current -= 1
+    })
+
+    let cancelled = false
+    const interval = setInterval(async () => {
+      try {
+        const remote = await fetchStateFromServer()
+        if (cancelled) return
+        if (pendingWritesRef.current > 0) return
+        const currentState = lastSyncedStateRef.current
+        if (
+          currentState &&
+          persistedKeys.some((key) => !statesEqual(state[key], currentState[key]))
+        ) {
+          return
+        }
+        setState((prev) => {
+          const next = mergeExerciseState(prev, remote)
+          lastSyncedStateRef.current = next
+          return next
+        })
+        setSyncError(null)
+      } catch (error) {
+        if (!cancelled) {
+          setSyncError(error instanceof Error ? error.message : 'Could not refresh exercise state')
+        }
+      }
+    }, 5000)
+
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
   }, [
     hydrated,
+    serverReady,
     state.settings.autoSave,
     state.settings,
-    state.participants,
-    state.responses,
     state.activeInjectId,
     state.completedInjects,
     state.facilitatorPhase,
@@ -307,15 +388,6 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
     state.aarNotes,
     state.actionItems,
   ])
-
-  useEffect(() => {
-    if (!serverHydrated.current) return
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-    } catch {
-      // ignore quota errors
-    }
-  }, [state])
 
   // Apply theme to <html>
   useEffect(() => {
@@ -399,7 +471,6 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
 
   const setActiveInject = useCallback((injectId: string | null) => {
     setState((p) => ({ ...p, activeInjectId: injectId }))
-    pushStateToServer({ activeInjectId: injectId })
   }, [])
 
   const setFacilitatorPhase = useCallback((phase: ExerciseState['facilitatorPhase']) => {
@@ -429,13 +500,18 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       const secret = process.env.NEXT_PUBLIC_EXERCISE_API_SECRET
       if (secret) headers['x-api-secret'] = secret
-      await fetch('/api/exercise-state/respond', {
+      const response = await fetch('/api/exercise-state/respond', {
         method: 'POST',
         headers,
         body: JSON.stringify({ participantId, injectId, choice }),
       })
-    } catch {
-      // ignore submit failures; polling will reconcile
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null
+        throw new Error(body?.error ?? `Response save failed (${response.status})`)
+      }
+      setSyncError(null)
+    } catch (error) {
+      setSyncError(error instanceof Error ? error.message : 'Could not save participant response')
     }
   }, [])
 
@@ -479,9 +555,16 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
       actionItems: [],
       running: false,
       elapsedSeconds: 0,
-    })
+    }).then(
+      () => {
+        lastSyncedStateRef.current = emptyState
+        setSyncError(null)
+      },
+      (error: unknown) => {
+        setSyncError(error instanceof Error ? error.message : 'Could not reset exercise state')
+      },
+    )
     try {
-      localStorage.removeItem(STORAGE_KEY)
       localStorage.removeItem('cyber-exercise-device-id')
     } catch {
       // ignore
@@ -492,6 +575,8 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
     () => ({
       state,
       hydrated,
+      syncError,
+      setSyncError,
       start,
       pause,
       reset,
@@ -513,6 +598,7 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
     [
       state,
       hydrated,
+      syncError,
       start,
       pause,
       reset,
@@ -533,7 +619,16 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
     ],
   )
 
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
+  return (
+    <StoreContext.Provider value={value}>
+      {syncError ? (
+        <div role="alert" className="border-b border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">
+          Exercise data is not syncing: {syncError}
+        </div>
+      ) : null}
+      {children}
+    </StoreContext.Provider>
+  )
 }
 
 export function useExercise() {

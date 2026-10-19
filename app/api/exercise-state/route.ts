@@ -1,92 +1,55 @@
 import { NextResponse } from 'next/server'
-import path from 'path'
-import fs from 'fs'
-import crypto from 'crypto'
+import { getExerciseState, patchExerciseState } from '@/lib/exercise-database'
 
-const DATA_FILE = path.join(process.cwd(), 'data', 'exercise-state.json')
+export const runtime = 'nodejs'
+
 const API_SECRET = process.env.EXERCISE_API_SECRET || ''
 
-let writePromise: Promise<void> | null = null
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
+}
 
 function checkAuth(request: Request) {
-  if (!API_SECRET) return true
-  const secret = request.headers.get('x-api-secret')
-  return secret === API_SECRET
-}
-
-function readStateFromDisk(): Record<string, unknown> {
-  try {
-    if (!fs.existsSync(DATA_FILE)) return {}
-    const raw = fs.readFileSync(DATA_FILE, 'utf-8')
-    return JSON.parse(raw) as Record<string, unknown>
-  } catch {
-    return {}
-  }
-}
-
-function writeStateToDiskAtomic(state: Record<string, unknown>) {
-  const tmpFile = `${DATA_FILE}.${process.pid}.${Date.now()}.tmp`
-  fs.writeFileSync(tmpFile, JSON.stringify(state, null, 2), 'utf-8')
-  fs.renameSync(tmpFile, DATA_FILE)
+  return !API_SECRET || request.headers.get('x-api-secret') === API_SECRET
 }
 
 export async function GET() {
   try {
-    const state = readStateFromDisk()
-    return NextResponse.json(state)
-  } catch {
-    return NextResponse.json({}, { status: 500 })
+    return NextResponse.json(await getExerciseState(), {
+      headers: { 'Cache-Control': 'no-store' },
+    })
+  } catch (error) {
+    console.error(
+      'Failed to read exercise state from PostgreSQL:',
+      error instanceof Error ? error.stack : error,
+    )
+    return NextResponse.json({ error: 'Exercise state is temporarily unavailable' }, { status: 503 })
   }
 }
 
 export async function POST(request: Request) {
+  if (!checkAuth(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  let patch: unknown
   try {
-    if (!checkAuth(request)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const patch = (await request.json()) as Record<string, unknown>
-
-    if (writePromise) {
-      await writePromise
-    }
-
-    writePromise = (async () => {
-      const current = readStateFromDisk()
-      const merged = deepMerge(current, patch)
-      writeStateToDiskAtomic(merged)
-    })()
-
-    await writePromise
-
-    const state = readStateFromDisk()
-    return NextResponse.json(state)
+    patch = await request.json()
   } catch {
-    return NextResponse.json({}, { status: 500 })
+    return NextResponse.json({ error: 'Request body must be valid JSON' }, { status: 400 })
   }
-}
-
-function deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
-  const result = { ...target }
-
-  for (const key of Object.keys(source)) {
-    const sourceValue = source[key]
-    const targetValue = target[key]
-
-    if (isPlainObject(sourceValue) && isPlainObject(targetValue)) {
-      result[key] = deepMerge(targetValue as Record<string, unknown>, sourceValue as Record<string, unknown>)
-    } else if (sourceValue !== undefined) {
-      result[key] = sourceValue
-    }
+  if (!isPlainObject(patch)) {
+    return NextResponse.json({ error: 'Request body must be a JSON object' }, { status: 400 })
   }
 
-  return result
-}
-
-function isPlainObject(value: unknown): boolean {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    return false
+  try {
+    return NextResponse.json(await patchExerciseState(patch), {
+      headers: { 'Cache-Control': 'no-store' },
+    })
+  } catch (error) {
+    console.error('Failed to save exercise state to PostgreSQL:', error)
+    return NextResponse.json({ error: 'Exercise state could not be saved' }, { status: 503 })
   }
-  const proto = Object.getPrototypeOf(value)
-  return proto === Object.prototype || proto === null
 }

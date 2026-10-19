@@ -1,81 +1,50 @@
 import { NextResponse } from 'next/server'
-import path from 'path'
-import fs from 'fs'
+import { submitExerciseResponse } from '@/lib/exercise-database'
 
-const DATA_FILE = path.join(process.cwd(), 'data', 'exercise-state.json')
+export const runtime = 'nodejs'
+
 const API_SECRET = process.env.EXERCISE_API_SECRET || ''
 
-let writePromise: Promise<void> | null = null
-
-function checkAuth(request: Request) {
-  if (!API_SECRET) return true
-  const secret = request.headers.get('x-api-secret')
-  return secret === API_SECRET
-}
-
-function readStateFromDisk(): Record<string, unknown> {
-  try {
-    if (!fs.existsSync(DATA_FILE)) return {}
-    const raw = fs.readFileSync(DATA_FILE, 'utf-8')
-    return JSON.parse(raw) as Record<string, unknown>
-  } catch {
-    return {}
-  }
-}
-
-function writeStateToDiskAtomic(state: Record<string, unknown>) {
-  const tmpFile = `${DATA_FILE}.${process.pid}.${Date.now()}.tmp`
-  fs.writeFileSync(tmpFile, JSON.stringify(state, null, 2), 'utf-8')
-  fs.renameSync(tmpFile, DATA_FILE)
-}
-
 export async function POST(request: Request) {
+  if (API_SECRET && request.headers.get('x-api-secret') !== API_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  let body: unknown
   try {
-    if (!checkAuth(request)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const response = (await request.json()) as Record<string, unknown>
-
-    if (writePromise) {
-      await writePromise
-    }
-
-    writePromise = (async () => {
-      const current = readStateFromDisk()
-      const responses = Array.isArray(current.responses) ? current.responses : []
-      
-      const participantId = response.participantId as string
-      const injectId = response.injectId as string
-      
-      const exists = responses.some(
-        (r: Record<string, unknown>) => r.participantId === participantId && r.injectId === injectId
-      )
-      
-      if (!exists) {
-        responses.push({
-          id: crypto.randomUUID(),
-          participantId,
-          injectId,
-          choice: response.choice,
-          submittedAt: Date.now(),
-        })
-      }
-      
-      writeStateToDiskAtomic({
-        ...current,
-        responses,
-      })
-    })()
-
-    await writePromise
-
-    const state = readStateFromDisk()
-    return NextResponse.json({ 
-      success: true, 
-      totalResponses: (state.responses as Record<string, unknown>[]).length 
-    })
+    body = await request.json()
   } catch {
-    return NextResponse.json({ error: 'Failed to submit response' }, { status: 500 })
+    return NextResponse.json({ error: 'Request body must be valid JSON' }, { status: 400 })
+  }
+
+  if (
+    typeof body !== 'object' ||
+    body === null ||
+    !('participantId' in body) ||
+    !('injectId' in body) ||
+    !('choice' in body) ||
+    typeof body.participantId !== 'string' ||
+    !body.participantId.trim() ||
+    typeof body.injectId !== 'string' ||
+    !body.injectId.trim() ||
+    typeof body.choice !== 'string' ||
+    !body.choice.trim()
+  ) {
+    return NextResponse.json(
+      { error: 'A participant ID, inject ID, and choice are required' },
+      { status: 400 }
+    )
+  }
+
+  try {
+    const result = await submitExerciseResponse({
+      participantId: body.participantId.trim(),
+      injectId: body.injectId.trim(),
+      choice: body.choice.trim(),
+    })
+    return NextResponse.json({ success: true, ...result })
+  } catch (error) {
+    console.error('Failed to save participant response to PostgreSQL:', error)
+    return NextResponse.json({ error: 'Response could not be saved' }, { status: 503 })
   }
 }

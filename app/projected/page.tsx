@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ExerciseBrand } from '@/components/exercise-brand'
 
 export default function ProjectedPage() {
   const [signupUrl, setSignupUrl] = useState('')
@@ -18,24 +19,27 @@ export default function ProjectedPage() {
 
   return (
     <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      <div className="flex justify-center rounded-lg bg-[#03262c] p-4 sm:p-6">
-        <img
-          src="/celium-logo.png"
-          alt="Celium — The Data Protection Symposium 2024"
-          className="h-auto w-full max-w-xl"
-        />
-      </div>
+      <ExerciseBrand />
 
       <Card>
         <CardHeader>
           <CardTitle className="text-[#0a5763]">Join the exercise</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center gap-3 p-6 text-center">
-          <img
-            src={qrCodeUrl}
-            alt="QR code for signup"
-            className="h-60 w-60 border border-border/70 bg-white p-3"
-          />
+          {qrCodeUrl ? (
+            <img
+              src={qrCodeUrl}
+              alt="QR code for signup"
+              className="h-60 w-60 border border-border/70 bg-white p-3"
+            />
+          ) : (
+            <div
+              role="status"
+              className="flex h-60 w-60 items-center justify-center border border-border/70 bg-white p-3 text-sm text-muted-foreground"
+            >
+              Preparing signup QR code...
+            </div>
+          )}
           <p className="text-sm font-medium text-foreground">Scan to Join</p>
         </CardContent>
       </Card>
