@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { createClientId } from './client-id'
 import { EXERCISE_META, TIMELINE, type RoleId } from './exercise-data'
 
 export interface Decision {
@@ -134,7 +135,7 @@ interface StoreContextValue {
   removeParticipant: (id: string) => void
   setActiveInject: (injectId: string | null) => void
   setFacilitatorPhase: (phase: ExerciseState['facilitatorPhase']) => void
-  submitResponse: (participantId: string, injectId: string, choice: string) => void
+  submitResponse: (injectId: string, choice: string) => Promise<void>
   setScore: (categoryId: string, value: number) => void
   updateSettings: (patch: Partial<Settings>) => void
   updateAarNotes: (patch: Partial<ExerciseState['aarNotes']>) => void
@@ -205,8 +206,6 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 async function pushStateToServer(patch: Record<string, unknown>): Promise<void> {
   const write = stateWriteQueue.then(async () => {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    const secret = process.env.NEXT_PUBLIC_EXERCISE_API_SECRET
-    if (secret) headers['x-api-secret'] = secret
     const response = await fetch('/api/exercise-state', {
       method: 'POST',
       headers,
@@ -257,6 +256,8 @@ function diffObject(previous: Record<string, unknown>, current: Record<string, u
 
 export function ExerciseProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<ExerciseState>(defaultState)
+  const stateRef = useRef(state)
+  stateRef.current = state
   const [hydrated, setHydrated] = useState(false)
   const [serverReady, setServerReady] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
@@ -317,9 +318,7 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
   }, [hydrated, serverReady])
 
   useEffect(() => {
-    if (!hydrated) return
-    if (!serverReady) return
-    if (!state.settings.autoSave) return
+    if (!hydrated || !serverReady || !state.settings.autoSave) return
 
     const lastSyncedState = lastSyncedStateRef.current
     if (!lastSyncedState) return
@@ -344,37 +343,6 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
     ).finally(() => {
       pendingWritesRef.current -= 1
     })
-
-    let cancelled = false
-    const interval = setInterval(async () => {
-      try {
-        const remote = await fetchStateFromServer()
-        if (cancelled) return
-        if (pendingWritesRef.current > 0) return
-        const currentState = lastSyncedStateRef.current
-        if (
-          currentState &&
-          persistedKeys.some((key) => !statesEqual(state[key], currentState[key]))
-        ) {
-          return
-        }
-        setState((prev) => {
-          const next = mergeExerciseState(prev, remote)
-          lastSyncedStateRef.current = next
-          return next
-        })
-        setSyncError(null)
-      } catch (error) {
-        if (!cancelled) {
-          setSyncError(error instanceof Error ? error.message : 'Could not refresh exercise state')
-        }
-      }
-    }, 5000)
-
-    return () => {
-      cancelled = true
-      clearInterval(interval)
-    }
   }, [
     hydrated,
     serverReady,
@@ -388,6 +356,40 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
     state.aarNotes,
     state.actionItems,
   ])
+
+  useEffect(() => {
+    if (!hydrated || !serverReady) return
+
+    let cancelled = false
+    const interval = setInterval(async () => {
+      try {
+        const remote = await fetchStateFromServer()
+        if (cancelled) return
+        if (pendingWritesRef.current > 0) return
+        const currentState = lastSyncedStateRef.current
+        const remoteState = mergeExerciseState(defaultState, remote)
+        if (
+          currentState &&
+          persistedKeys.some((key) => !statesEqual(stateRef.current[key], currentState[key]))
+        ) {
+          return
+        }
+
+        lastSyncedStateRef.current = remoteState
+        setState((prev) => mergeExerciseState(prev, remoteState))
+        setSyncError(null)
+      } catch (error) {
+        if (!cancelled) {
+          setSyncError(error instanceof Error ? error.message : 'Could not refresh exercise state')
+        }
+      }
+    }, 5000)
+
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [hydrated, serverReady])
 
   // Apply theme to <html>
   useEffect(() => {
@@ -445,7 +447,7 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
       ...p,
       decisions: [
         ...p.decisions,
-        { ...d, id: crypto.randomUUID(), createdAt: Date.now() },
+        { ...d, id: createClientId(), createdAt: Date.now() },
       ],
     }))
   }, [])
@@ -460,7 +462,7 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
       if (exists) return prev
       return {
         ...prev,
-        participants: [...prev.participants, { ...p, id: crypto.randomUUID() }],
+        participants: [...prev.participants, { ...p, id: createClientId() }],
       }
     })
   }, [])
@@ -477,41 +479,32 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
     setState((p) => ({ ...p, facilitatorPhase: phase }))
   }, [])
 
-  const submitResponse = useCallback(async (participantId: string, injectId: string, choice: string) => {
-    setState((p) => {
-      const alreadySubmitted = p.responses.some((r) => r.participantId === participantId && r.injectId === injectId)
-      if (alreadySubmitted) return p
-      return {
-        ...p,
-        responses: [
-          ...p.responses,
-          {
-            id: crypto.randomUUID(),
-            participantId,
-            injectId,
-            choice,
-            submittedAt: Date.now(),
-          },
-        ],
-      }
-    })
-
+  const submitResponse = useCallback(async (injectId: string, choice: string) => {
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      const secret = process.env.NEXT_PUBLIC_EXERCISE_API_SECRET
-      if (secret) headers['x-api-secret'] = secret
       const response = await fetch('/api/exercise-state/respond', {
         method: 'POST',
-        headers,
-        body: JSON.stringify({ participantId, injectId, choice }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ injectId, choice }),
       })
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as { error?: string } | null
         throw new Error(body?.error ?? `Response save failed (${response.status})`)
       }
+      const result = (await response.json()) as { response: ParticipantResponse }
+      setState((previous) => ({
+        ...previous,
+        responses: [
+          ...previous.responses.filter(
+            (item) => !(item.participantId === result.response.participantId && item.injectId === injectId),
+          ),
+          result.response,
+        ],
+      }))
       setSyncError(null)
     } catch (error) {
-      setSyncError(error instanceof Error ? error.message : 'Could not save participant response')
+      const message = error instanceof Error ? error.message : 'Could not save participant response'
+      setSyncError(message)
+      throw new Error(message)
     }
   }, [])
 
@@ -531,7 +524,7 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const addActionItem = useCallback((a: Omit<ActionItem, 'id'>) => {
-    setState((p) => ({ ...p, actionItems: [...p.actionItems, { ...a, id: crypto.randomUUID() }] }))
+    setState((p) => ({ ...p, actionItems: [...p.actionItems, { ...a, id: createClientId() }] }))
   }, [])
 
   const removeActionItem = useCallback((id: string) => {

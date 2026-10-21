@@ -62,7 +62,7 @@
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  --primary: #007A8E;
+  --primary: #142B4A;
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
@@ -78,21 +78,21 @@
   --warning-foreground: #0f172a;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #007A8E;
-  --chart-1: #007A8E;
+  --ring: #142B4A;
+  --chart-1: #142B4A;
   --chart-2: #0ea5e9;
   --chart-3: #16a34a;
   --chart-4: #f59e0b;
   --chart-5: #ef4444;
-  --radius: 0rem;
+  --radius: 0.75rem;
   --sidebar: #ffffff;
   --sidebar-foreground: #0f172a;
-  --sidebar-primary: #007A8E;
+  --sidebar-primary: #142B4A;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #f1f5f9;
   --sidebar-accent-foreground: #0f172a;
   --sidebar-border: #e2e8f0;
-  --sidebar-ring: #007A8E;
+  --sidebar-ring: #142B4A;
 }
 
 /* Dark theme override via class */
@@ -104,7 +104,7 @@
   --card-foreground: oklch(0.95 0.01 255);
   --popover: oklch(0.2 0.025 255);
   --popover-foreground: oklch(0.95 0.01 255);
-  --primary: #007A8E;
+  --primary: #142B4A;
   --primary-foreground: #ffffff;
   --secondary: oklch(0.27 0.03 255);
   --secondary-foreground: oklch(0.95 0.01 255);
@@ -120,15 +120,15 @@
   --warning-foreground: oklch(0.2 0.02 255);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 14%);
-  --ring: #007A8E;
+  --ring: #142B4A;
   --sidebar: oklch(0.19 0.022 255);
   --sidebar-foreground: oklch(0.95 0.01 255);
-  --sidebar-primary: #007A8E;
+  --sidebar-primary: #142B4A;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: oklch(0.27 0.03 255);
   --sidebar-accent-foreground: oklch(0.95 0.01 255);
   --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: #007A8E;
+  --sidebar-ring: #142B4A;
 }
 
 @layer base {

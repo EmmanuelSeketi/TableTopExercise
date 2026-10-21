@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Tabletop Exercise',
+  title: 'Incident Response Exercise',
   description:
     'Facilitate professional 60-minute cybersecurity incident response tabletop exercises. Manage scenarios, injects, decision logs, scoring, and generate After Action Reports.',
   generator: 'v0.app',

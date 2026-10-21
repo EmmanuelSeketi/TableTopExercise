@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server'
-import { submitExerciseResponse } from '@/lib/exercise-database'
+import { getExerciseState, submitExerciseResponse } from '@/lib/exercise-database'
+import { getParticipantDeviceId, hasSameOrigin } from '@/lib/exercise-auth'
+import { INJECTS } from '@/lib/exercise-data'
 
 export const runtime = 'nodejs'
 
-const API_SECRET = process.env.EXERCISE_API_SECRET || ''
-
 export async function POST(request: Request) {
-  if (API_SECRET && request.headers.get('x-api-secret') !== API_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  if (!hasSameOrigin(request)) return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 })
+  const participantId = getParticipantDeviceId(request)
+  if (!participantId) return NextResponse.json({ error: 'Join the exercise before responding' }, { status: 401 })
 
   let body: unknown
   try {
@@ -20,25 +20,30 @@ export async function POST(request: Request) {
   if (
     typeof body !== 'object' ||
     body === null ||
-    !('participantId' in body) ||
     !('injectId' in body) ||
     !('choice' in body) ||
-    typeof body.participantId !== 'string' ||
-    !body.participantId.trim() ||
     typeof body.injectId !== 'string' ||
     !body.injectId.trim() ||
     typeof body.choice !== 'string' ||
     !body.choice.trim()
   ) {
     return NextResponse.json(
-      { error: 'A participant ID, inject ID, and choice are required' },
+      { error: 'An inject ID and choice are required' },
       { status: 400 }
     )
   }
 
   try {
+    const inject = INJECTS.find((item) => item.id === body.injectId)
+    if (!inject?.choices.some((choice) => choice.id === body.choice)) {
+      return NextResponse.json({ error: 'The selected inject or answer is invalid' }, { status: 400 })
+    }
+    const state = await getExerciseState()
+    if (!state.participants.some((participant) => participant.deviceId === participantId)) {
+      return NextResponse.json({ error: 'Participant registration was not found; please join again' }, { status: 401 })
+    }
     const result = await submitExerciseResponse({
-      participantId: body.participantId.trim(),
+      participantId,
       injectId: body.injectId.trim(),
       choice: body.choice.trim(),
     })

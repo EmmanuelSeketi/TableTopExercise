@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getExerciseState, patchExerciseState } from '@/lib/exercise-database'
+import { getParticipantDeviceId, hasSameOrigin, isAdminRequest } from '@/lib/exercise-auth'
 
 export const runtime = 'nodejs'
-
-const API_SECRET = process.env.EXERCISE_API_SECRET || ''
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
@@ -11,13 +10,20 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return prototype === Object.prototype || prototype === null
 }
 
-function checkAuth(request: Request) {
-  return !API_SECRET || request.headers.get('x-api-secret') === API_SECRET
-}
-
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    return NextResponse.json(await getExerciseState(), {
+    const state = await getExerciseState()
+    const visibleState = isAdminRequest(request)
+      ? state
+      : {
+          activeInjectId: state.activeInjectId,
+          facilitatorPhase: state.facilitatorPhase,
+          settings: { theme: state.settings.theme },
+          responses: state.responses.filter(
+            (response) => response.participantId === getParticipantDeviceId(request),
+          ),
+        }
+    return NextResponse.json(visibleState, {
       headers: { 'Cache-Control': 'no-store' },
     })
   } catch (error) {
@@ -30,7 +36,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (!checkAuth(request)) {
+  if (!hasSameOrigin(request) || !isAdminRequest(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

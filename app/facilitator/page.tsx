@@ -6,10 +6,10 @@ import { useExercise } from '@/lib/exercise-store'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ExerciseBrand } from '@/components/exercise-brand'
+import { InjectVisual } from '@/components/inject-visual'
 
 const ROLE_CHART_COLORS = [
-  '#007A8E',
+  '#142B4A',
   '#c9a76b',
   '#0a5763',
   '#8a6a35',
@@ -36,8 +36,7 @@ export default function FacilitatorPage() {
 
   if (!hydrated) {
     return (
-      <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        <ExerciseBrand />
+      <div className="mx-auto w-full max-w-[90rem] space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <Card>
           <CardContent className="p-5">
             <p className="text-sm text-muted-foreground">Loading exercise data...</p>
@@ -48,13 +47,11 @@ export default function FacilitatorPage() {
   }
 
   return (
-    <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      <ExerciseBrand />
-
+    <div className="mx-auto w-full max-w-[90rem] space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <Card>
           <CardHeader>
-            <CardTitle className="text-[#0a5763]">Active inject control</CardTitle>
+            <CardTitle className="text-primary">Active inject control</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 p-5">
             {activeInject ? (
@@ -63,7 +60,8 @@ export default function FacilitatorPage() {
                   <Badge variant="success">Active</Badge>
                   <span className="text-lg font-semibold text-foreground">{activeInject.title}</span>
                 </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">{activeInject.description}</p>
+                <p className="text-justify text-sm leading-relaxed text-muted-foreground">{activeInject.description}</p>
+                <InjectVisual injectId={activeInject.id} title={activeInject.title} />
                 <div className="flex flex-wrap gap-2">
                   <Button variant="secondary" onClick={() => setActiveInject(null)}>
                     Deactivate inject
@@ -73,7 +71,7 @@ export default function FacilitatorPage() {
             ) : (
               <div className="space-y-3">
                 <p className="text-sm font-medium text-foreground">No active inject selected.</p>
-                <p className="text-sm leading-relaxed text-muted-foreground">Select an inject below to make it visible to participants and the projector.</p>
+                <p className="text-justify text-sm leading-relaxed text-muted-foreground">Select an inject below to make it visible to participants and the projector.</p>
               </div>
             )}
           </CardContent>
@@ -81,15 +79,15 @@ export default function FacilitatorPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-[#8a6a35]">Signup status</CardTitle>
+            <CardTitle className="text-primary">Signup status</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 p-5">
-            <p className="text-sm leading-relaxed text-muted-foreground">Participant registrations are updated live via local storage and cross-tab sync.</p>
-            <div className="flex items-center justify-between border border-border/70 bg-card p-3">
+            <p className="text-justify text-sm leading-relaxed text-muted-foreground">Participant registrations are updated live via local storage and cross-tab sync.</p>
+            <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/40 p-3">
               <span className="text-sm font-medium">Total participants</span>
               <Badge variant="secondary">{state.participants.length}</Badge>
             </div>
-            <div className="border border-border/70 bg-card p-4">
+            <div className="rounded-xl border border-border/70 bg-muted/40 p-4">
               <div className="space-y-3">
                 {ROLES.map((role, index) => {
                   const count = roleCounts[role.id] ?? 0
@@ -101,9 +99,9 @@ export default function FacilitatorPage() {
                         <span className="font-medium text-foreground">{role.title}</span>
                         <span className="text-xs text-muted-foreground">{count} joined</span>
                       </div>
-                      <div className="h-2 w-full overflow-hidden bg-muted">
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                         <div
-                          className="h-full transition-all"
+                          className="h-full rounded-full transition-all"
                           style={{
                             width: `${Math.max(widthPct, count > 0 ? 8 : 0)}%`,
                             backgroundColor: color,
@@ -121,14 +119,14 @@ export default function FacilitatorPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-[#0a5763]">Inject list</CardTitle>
+          <CardTitle className="text-primary">Inject list</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 p-5">
           {INJECTS.map((inject) => {
             const isActive = state.activeInjectId === inject.id
             const isCompleted = state.completedInjects.includes(inject.id)
             return (
-              <div key={inject.id} className="grid gap-3 border border-border/70 bg-card p-4 sm:grid-cols-[1fr_auto]">
+              <div key={inject.id} className={`grid gap-3 rounded-xl border border-border/70 p-4 transition-colors sm:grid-cols-[1fr_auto] ${isActive ? 'border-primary/40 bg-primary/5' : 'bg-card'}`}>
                 <div>
                   <p className="font-semibold text-foreground">{inject.title}</p>
                   <p className="text-sm text-muted-foreground">{inject.time} · {inject.nist}</p>
