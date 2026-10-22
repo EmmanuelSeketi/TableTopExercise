@@ -10,11 +10,6 @@
     "evidence": "SIEM: 4624 logon type 3, service account svc_backup, source FIN-WS-042, 09:19:03.",
     "choices": [
       {
-        "id": "correct",
-        "label": "Disconnect the affected computer from the network (without turning it off), lock the automatic account so it can't be used again, check the logs to see if the intruder reached other computers, and open a formal security case.",
-        "type": "correct"
-      },
-      {
         "id": "wrong",
         "label": "Dismiss the alert as a glitch, assuming automatic accounts sometimes act strange, and take no further action.",
         "type": "wrong"
@@ -23,6 +18,11 @@
         "id": "neutral",
         "label": "Mark the alert as suspicious and ask someone to look into it later in the shift, without disconnecting anything yet.",
         "type": "neutral"
+      },
+      {
+        "id": "correct",
+        "label": "Disconnect the affected computer from the network (without turning it off), lock the automatic account so it can't be used again, check the logs to see if the intruder reached other computers, and open a formal security case.",
+        "type": "correct"
       }
     ],
     "facilitatorNotes": "Watch whether the team treats this as noise or investigates. Good teams pivot on the account and host immediately.",
@@ -40,14 +40,14 @@
     "evidence": "EDR process tree: EXCEL.EXE \u2192 powershell.exe -enc <redacted>. Network beacon to 185.xx.xx.xx every 60s.",
     "choices": [
       {
-        "id": "correct",
-        "label": "Treat this as a confirmed attack, automatically isolate the computer using the security software, decode the hidden instructions to understand what they were trying to do, and check the rest of the network for the same pattern.",
-        "type": "correct"
-      },
-      {
         "id": "wrong",
         "label": "Dismiss it as a harmless glitch caused by normal spreadsheet features, and let the employee keep working on the computer.",
         "type": "wrong"
+      },
+      {
+        "id": "correct",
+        "label": "Treat this as a confirmed attack, automatically isolate the computer using the security software, decode the hidden instructions to understand what they were trying to do, and check the rest of the network for the same pattern.",
+        "type": "correct"
       },
       {
         "id": "neutral",
@@ -70,11 +70,6 @@
     "evidence": "Email gateway log of the phishing message; sandbox detonation report; beacon seen on FIN-WS-042, FIN-WS-018, HR-WS-007.",
     "choices": [
       {
-        "id": "correct",
-        "label": "Officially declare a security incident, disconnect all three affected computers from the network, block the sender and the malicious file company-wide, start figuring out how far the attacker has reached, and alert the person in charge of the response.",
-        "type": "correct"
-      },
-      {
         "id": "neutral",
         "label": "Disconnect only the first affected computer and make a note to check the other two later, without officially declaring an incident yet.",
         "type": "neutral"
@@ -83,6 +78,11 @@
         "id": "wrong",
         "label": "Treat each affected computer as a separate, unrelated problem, without connecting the dots or telling leadership.",
         "type": "wrong"
+      },
+      {
+        "id": "correct",
+        "label": "Officially declare a security incident, disconnect all three affected computers from the network, block the sender and the malicious file company-wide, start figuring out how far the attacker has reached, and alert the person in charge of the response.",
+        "type": "correct"
       }
     ],
     "facilitatorNotes": "This is the key declaration moment. Note the time; success criteria target declaration by 15:00.",

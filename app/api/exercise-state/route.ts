@@ -3,6 +3,12 @@ import { getExerciseState, patchExerciseState } from '@/lib/exercise-database'
 import { getParticipantDeviceId, hasSameOrigin, isAdminRequest } from '@/lib/exercise-auth'
 
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+const privateStateHeaders = {
+  'Cache-Control': 'private, no-store, max-age=0, must-revalidate',
+  Vary: 'Cookie',
+}
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
@@ -13,18 +19,20 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 export async function GET(request: Request) {
   try {
     const state = await getExerciseState()
+    const participantDeviceId = getParticipantDeviceId(request) ?? null
     const visibleState = isAdminRequest(request)
-      ? state
+      ? { ...state, currentParticipantId: participantDeviceId }
       : {
+          currentParticipantId: participantDeviceId,
           activeInjectId: state.activeInjectId,
           facilitatorPhase: state.facilitatorPhase,
           settings: { theme: state.settings.theme },
           responses: state.responses.filter(
-            (response) => response.participantId === getParticipantDeviceId(request),
+            (response) => response.participantId === participantDeviceId,
           ),
         }
     return NextResponse.json(visibleState, {
-      headers: { 'Cache-Control': 'no-store' },
+      headers: privateStateHeaders,
     })
   } catch (error) {
     console.error(

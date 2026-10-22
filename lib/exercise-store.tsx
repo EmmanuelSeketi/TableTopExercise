@@ -54,6 +54,7 @@ export interface ExerciseState {
   elapsedSeconds: number
   completedInjects: string[]
   participants: Participant[]
+  currentParticipantId: string | null
   activeInjectId: string | null
   facilitatorPhase: 'signup' | 'activeInject'
   responses: ParticipantResponse[]
@@ -92,6 +93,7 @@ const defaultState: ExerciseState = {
   elapsedSeconds: 0,
   completedInjects: [],
   participants: [],
+  currentParticipantId: null,
   activeInjectId: null,
   facilitatorPhase: 'signup',
   responses: [],
@@ -459,9 +461,10 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
   const addParticipant = useCallback((p: Omit<Participant, 'id'>) => {
     setState((prev) => {
       const exists = prev.participants.some((participant) => participant.deviceId === p.deviceId)
-      if (exists) return prev
+      if (exists) return { ...prev, currentParticipantId: p.deviceId }
       return {
         ...prev,
+        currentParticipantId: p.deviceId,
         participants: [...prev.participants, { ...p, id: createClientId() }],
       }
     })
@@ -491,6 +494,9 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
         throw new Error(body?.error ?? `Response save failed (${response.status})`)
       }
       const result = (await response.json()) as { response: ParticipantResponse }
+      if (stateRef.current.currentParticipantId !== result.response.participantId) {
+        throw new Error('The saved response does not match this participant session. Please join again.')
+      }
       setState((previous) => ({
         ...previous,
         responses: [

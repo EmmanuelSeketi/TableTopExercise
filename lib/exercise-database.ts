@@ -98,6 +98,7 @@ export function createDefaultExerciseState(): ExerciseState {
     elapsedSeconds: 0,
     completedInjects: [],
     participants: [],
+    currentParticipantId: null,
     activeInjectId: null,
     facilitatorPhase: 'signup',
     responses: [],

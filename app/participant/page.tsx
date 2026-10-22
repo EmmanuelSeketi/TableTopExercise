@@ -12,6 +12,9 @@ import { Button } from '@/components/ui/button'
 export default function ParticipantPage() {
   const { state, submitResponse } = useExercise()
   const activeInject = INJECTS.find((inject) => inject.id === state.activeInjectId)
+  const participantResponses = state.currentParticipantId
+    ? state.responses.filter((response) => response.participantId === state.currentParticipantId)
+    : []
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -31,11 +34,11 @@ export default function ParticipantPage() {
   const selectedType = selectedChoice?.type ?? null
 
   const hasExistingResponse = activeInject != null
-    ? state.responses.some((r) => r.injectId === activeInject.id)
+    ? participantResponses.some((r) => r.injectId === activeInject.id)
     : false
 
   const existingResponse = activeInject
-    ? state.responses.find((r) => r.injectId === activeInject.id)
+    ? participantResponses.find((r) => r.injectId === activeInject.id)
     : undefined
 
   const existingChoice = activeInject && existingResponse
@@ -77,7 +80,7 @@ export default function ParticipantPage() {
     : null
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6 px-0 py-4 sm:px-6 sm:py-8 lg:px-8">
+    <div className="mx-auto w-full max-w-[90rem] space-y-6 px-0 py-4 sm:px-6 sm:py-8 lg:px-8">
       <Card>
         <CardContent className="space-y-5 p-3 sm:space-y-6 sm:p-5">
           {activeInject ? (

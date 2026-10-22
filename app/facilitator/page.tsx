@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { RotateCcw } from 'lucide-react'
 import { INJECTS, ROLES } from '@/lib/exercise-data'
 import { useExercise } from '@/lib/exercise-store'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -147,9 +148,22 @@ export default function FacilitatorPage() {
         </CardContent>
       </Card>
 
-      <Button variant="destructive" onClick={resetAll} className="w-full">
-        Reset exercise data
-      </Button>
+      <div className="flex flex-col gap-4 border-t border-border/70 pt-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-foreground">Reset exercise data</p>
+          <p className="text-justify text-sm leading-relaxed text-muted-foreground">
+            Clears participant responses, registrations, and exercise progress.
+          </p>
+        </div>
+        <Button
+          variant="destructive"
+          onClick={resetAll}
+          className="h-11 w-full gap-2 border border-destructive bg-destructive px-5 text-destructive-foreground shadow-sm hover:bg-destructive/90 sm:w-auto"
+        >
+          <RotateCcw className="size-4" />
+          Reset exercise data
+        </Button>
+      </div>
     </div>
   )
 }
