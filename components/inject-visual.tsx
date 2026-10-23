@@ -3,7 +3,7 @@ import Image from 'next/image'
 const INJECT_IMAGES: Record<string, string> = {
   inj1: '/images/inject2.png',
   inj2: '/images/inject1.jpg',
-  inj3: '/images/inject0.png',
+  inj3: '/images/inject4.png',
   inj4: '/images/inject3.png',
   inj5: '/images/inject5.png',
   inj6: '/images/inject6.png',
