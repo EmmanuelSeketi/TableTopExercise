@@ -1,4 +1,7 @@
+'use client'
+
 import Image from 'next/image'
+import { useState } from 'react'
 
 const INJECT_IMAGES: Record<string, string> = {
   inj1: '/images/inject2.png',
@@ -15,6 +18,37 @@ const INJECT_IMAGES: Record<string, string> = {
   inj12: '/images/inject12.jpg',
 }
 
+interface VisualImageProps {
+  src: string
+  alt: string
+}
+
+function VisualImage({ src, alt }: VisualImageProps) {
+  const [loaded, setLoaded] = useState(false)
+
+  return (
+    <figure className="relative aspect-video w-full overflow-hidden bg-muted" aria-busy={!loaded}>
+      {!loaded && (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 animate-pulse bg-muted"
+        />
+      )}
+      <Image
+        src={src}
+        alt={alt}
+        width={1600}
+        height={900}
+        sizes="(max-width: 768px) 100vw, 1200px"
+        fill
+        onLoad={() => setLoaded(true)}
+        onError={() => setLoaded(true)}
+        className={`scale-[1.2] object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+      />
+    </figure>
+  )
+}
+
 interface InjectVisualProps {
   injectId: string
   title: string
@@ -24,33 +58,14 @@ export function InjectVisual({ injectId, title }: InjectVisualProps) {
   const src = INJECT_IMAGES[injectId]
   if (!src) return null
 
-  return (
-    <figure className="relative aspect-video w-full overflow-hidden bg-muted">
-      <Image
-        src={src}
-        alt={`Scenario visual for ${title}`}
-        width={1600}
-        height={900}
-        sizes="(max-width: 768px) 100vw, 1200px"
-        fill
-        className="scale-[1.2] object-cover"
-      />
-    </figure>
-  )
+  return <VisualImage key={src} src={src} alt={`Scenario visual for ${title}`} />
 }
 
 export function ExerciseOverviewVisual() {
   return (
-    <figure className="relative aspect-video w-full overflow-hidden bg-muted">
-      <Image
-        src="/images/inject0.png"
-        alt="Finance employee reviewing a vendor invoice and spreadsheet"
-        width={1600}
-        height={900}
-        sizes="(max-width: 768px) 100vw, 1200px"
-        fill
-        className="scale-[1.2] object-cover"
-      />
-    </figure>
+    <VisualImage
+      src="/images/inject0.png"
+      alt="Finance employee reviewing a vendor invoice and spreadsheet"
+    />
   )
 }

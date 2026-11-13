@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { InjectVisual } from '@/components/inject-visual'
+import { ParticipantRoster } from '@/components/participant-roster'
 
 const ROLE_CHART_COLORS = [
   '#142B4A',
@@ -84,10 +85,7 @@ export default function FacilitatorPage() {
           </CardHeader>
           <CardContent className="space-y-4 p-5">
             <p className="text-justify text-sm leading-relaxed text-muted-foreground">Participant registrations are updated live via local storage and cross-tab sync.</p>
-            <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/40 p-3">
-              <span className="text-sm font-medium">Total participants</span>
-              <Badge variant="secondary">{state.participants.length}</Badge>
-            </div>
+            <ParticipantRoster participants={state.participants} id="facilitator-participants" />
             <div className="rounded-xl border border-border/70 bg-muted/40 p-4">
               <div className="space-y-3">
                 {ROLES.map((role, index) => {

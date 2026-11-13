@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, Minus, XCircle } from 'lucide-react'
 import { INJECTS, ROLES } from '@/lib/exercise-data'
 import { ExerciseOverviewVisual, InjectVisual } from '@/components/inject-visual'
+import { ParticipantRoster } from '@/components/participant-roster'
 import { useExercise } from '@/lib/exercise-store'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -103,10 +104,7 @@ export default function ModeratePage() {
             <CardTitle className="text-primary">Participant responses</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 p-5">
-            <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/40 p-3">
-              <span className="text-sm font-medium">Total participants</span>
-              <Badge variant="secondary">{state.participants.length}</Badge>
-            </div>
+            <ParticipantRoster participants={state.participants} id="moderate-participants" />
             <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/40 p-3">
               <span className="text-sm font-medium">Total responses for this inject</span>
               <Badge variant="secondary">{injectResponseCount}</Badge>
