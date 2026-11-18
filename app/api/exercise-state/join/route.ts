@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import { joinExercise } from '@/lib/exercise-database'
-import { ROLES } from '@/lib/exercise-data'
+import { getExerciseDefinition, getExerciseIdFromUrl } from '@/lib/exercise-instances'
 import {
   createParticipantSession,
   getParticipantDeviceId,
@@ -14,6 +14,9 @@ export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
   if (!hasSameOrigin(request)) return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 })
+  const instanceId = getExerciseIdFromUrl(request.url)
+  if (!instanceId) return NextResponse.json({ error: 'Unknown exercise instance' }, { status: 400 })
+  const roles = getExerciseDefinition(instanceId).roles
   let body: unknown
   try {
     body = await request.json()
@@ -30,17 +33,17 @@ export async function POST(request: Request) {
     body.name.trim().length > 100 ||
     !body.name.trim() ||
     typeof body.roleId !== 'string' ||
-    !ROLES.some((role) => role.id === body.roleId)
+    !roles.some((role) => role.id === body.roleId)
   ) {
     return NextResponse.json({ error: 'A valid name and role are required' }, { status: 400 })
   }
 
   try {
     const deviceId = getParticipantDeviceId(request) ?? randomUUID()
-    const result = await joinExercise({
+    const result = await joinExercise(instanceId, {
       deviceId,
       name: body.name.trim(),
-      roleId: body.roleId as (typeof ROLES)[number]['id'],
+      roleId: body.roleId as (typeof roles)[number]['id'],
     })
     const response = NextResponse.json({ success: true, participant: result.participant })
     response.cookies.set(

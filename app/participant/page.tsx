@@ -2,16 +2,24 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { CheckCircle2, XCircle, Minus } from 'lucide-react'
-import { ExerciseOverviewVisual, InjectVisual } from '@/components/inject-visual'
+import {
+  ExerciseClosing,
+  ExerciseOverview,
+  ExerciseSessionFlow,
+} from '@/components/exercise-overview'
+import { InjectVisual } from '@/components/inject-visual'
+import { getCurrentExerciseStep } from '@/lib/exercise-navigation'
 import { useExercise } from '@/lib/exercise-store'
-import { INJECTS } from '@/lib/exercise-data'
+import { useExerciseDefinition } from '@/lib/exercise-selection'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
 export default function ParticipantPage() {
   const { state, submitResponse } = useExercise()
-  const activeInject = INJECTS.find((inject) => inject.id === state.activeInjectId)
+  const definition = useExerciseDefinition()
+  const activeStep = getCurrentExerciseStep(definition, state.activeInjectId).step
+  const activeInject = activeStep.kind === 'inject' ? activeStep.inject : null
   const participantResponses = state.currentParticipantId
     ? state.responses.filter((response) => response.participantId === state.currentParticipantId)
     : []
@@ -155,17 +163,12 @@ export default function ParticipantPage() {
                 )}
               </div>
             </div>
+          ) : activeStep.kind === 'session-flow' ? (
+            <ExerciseSessionFlow definition={definition} />
+          ) : activeStep.kind === 'closing' ? (
+            <ExerciseClosing definition={definition} />
           ) : (
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-foreground">Overview</p>
-              <ExerciseOverviewVisual />
-              <p className="text-justify text-sm leading-relaxed text-muted-foreground">
-                It is 09:14 AM  on a Tuesday morning. Mutinta Banda, a senior accountant in the Finance department at Meridian Financial Group, receives an email that looks like it is from a vendor the company already works with. The subject line reads “Updated Q3 Invoice – Action Required,” and it includes an attached spreadsheet.
-Mutinta opens the attachment. A pop-up tells her she needs to click a button to view the file properly, so she does. Without realizing it, that click quietly installs harmful software on her computer. Within minutes, an attacker has a foothold on her machine and starts exploring the rest of the company's network from there.
-Over the next hour, what started as one employee opening one email escalates into a company-wide ransomware attack that knocks out the finance department's file server and disrupts business across the organization.
-
-              </p>
-            </div>
+            <ExerciseOverview definition={definition} />
           )}
         </CardContent>
       </Card>

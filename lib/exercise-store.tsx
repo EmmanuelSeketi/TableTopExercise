@@ -10,7 +10,8 @@ import {
   useState,
 } from 'react'
 import { createClientId } from './client-id'
-import { EXERCISE_META, TIMELINE, type RoleId } from './exercise-data'
+import type { RoleId } from './exercise-data'
+import { exerciseApiUrl, useExerciseDefinition } from './exercise-selection'
 
 export interface Decision {
   id: string
@@ -78,35 +79,37 @@ export interface ActionItem {
   priority: 'High' | 'Medium' | 'Low'
 }
 
-const defaultState: ExerciseState = {
-  settings: {
-    title: EXERCISE_META.defaultTitle,
-    organization: EXERCISE_META.defaultOrg,
-    facilitator: EXERCISE_META.defaultFacilitator,
-    durationMinutes: EXERCISE_META.defaultDurationMinutes,
-    theme: 'light',
-    autoSave: true,
-    sound: true,
-    logoDataUrl: null,
-  },
-  running: false,
-  elapsedSeconds: 0,
-  completedInjects: [],
-  participants: [],
-  currentParticipantId: null,
-  activeInjectId: null,
-  facilitatorPhase: 'signup',
-  responses: [],
-  decisions: [],
-  scores: {},
-  aarNotes: {
-    executiveSummary: '',
-    strengths: '',
-    improvements: '',
-    lessons: '',
-    recommendations: '',
-  },
-  actionItems: [],
+function createDefaultState(definition: ReturnType<typeof useExerciseDefinition>): ExerciseState {
+  return {
+    settings: {
+      title: definition.title,
+      organization: definition.organization,
+      facilitator: 'A. Rivera, CISM',
+      durationMinutes: definition.durationMinutes,
+      theme: 'light',
+      autoSave: true,
+      sound: true,
+      logoDataUrl: null,
+    },
+    running: false,
+    elapsedSeconds: 0,
+    completedInjects: [],
+    participants: [],
+    currentParticipantId: null,
+    activeInjectId: null,
+    facilitatorPhase: 'signup',
+    responses: [],
+    decisions: [],
+    scores: {},
+    aarNotes: {
+      executiveSummary: '',
+      strengths: '',
+      improvements: '',
+      lessons: '',
+      recommendations: '',
+    },
+    actionItems: [],
+  }
 }
 
 const persistedKeys = [
@@ -169,7 +172,7 @@ function playBeep() {
 }
 
 async function fetchStateFromServer(): Promise<Partial<ExerciseState>> {
-  const response = await fetch('/api/exercise-state', { cache: 'no-store' })
+  const response = await fetch(exerciseApiUrl('/api/exercise-state'), { cache: 'no-store' })
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as { error?: string } | null
     throw new Error(body?.error ?? `Exercise state request failed (${response.status})`)
@@ -208,7 +211,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 async function pushStateToServer(patch: Record<string, unknown>): Promise<void> {
   const write = stateWriteQueue.then(async () => {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    const response = await fetch('/api/exercise-state', {
+    const response = await fetch(exerciseApiUrl('/api/exercise-state'), {
       method: 'POST',
       headers,
       body: JSON.stringify(patch),
@@ -257,6 +260,8 @@ function diffObject(previous: Record<string, unknown>, current: Record<string, u
 }
 
 export function ExerciseProvider({ children }: { children: React.ReactNode }) {
+  const definition = useExerciseDefinition()
+  const defaultState = useMemo(() => createDefaultState(definition), [definition.id])
   const [state, setState] = useState<ExerciseState>(defaultState)
   const stateRef = useRef(state)
   stateRef.current = state
@@ -291,7 +296,7 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [definition.id, defaultState])
 
   useEffect(() => {
     if (!hydrated || serverReady) return
@@ -317,7 +322,7 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
       cancelled = true
       clearInterval(interval)
     }
-  }, [hydrated, serverReady])
+  }, [hydrated, serverReady, definition.id, defaultState])
 
   useEffect(() => {
     if (!hydrated || !serverReady || !state.settings.autoSave) return
@@ -391,7 +396,7 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
       cancelled = true
       clearInterval(interval)
     }
-  }, [hydrated, serverReady])
+  }, [hydrated, serverReady, definition.id, defaultState])
 
   // Apply theme to <html>
   useEffect(() => {
@@ -421,7 +426,7 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
     const minute = Math.floor(state.elapsedSeconds / 60)
     const seconds = state.elapsedSeconds % 60
     if (seconds !== 0) return
-    const event = TIMELINE.find((t) => t.minute === minute && t.injectId)
+    const event = definition.timeline.find((t) => t.minute === minute && t.injectId)
     if (event && !notifiedRef.current.has(minute)) {
       notifiedRef.current.add(minute)
       playBeep()
@@ -484,7 +489,7 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
 
   const submitResponse = useCallback(async (injectId: string, choice: string) => {
     try {
-      const response = await fetch('/api/exercise-state/respond', {
+      const response = await fetch(exerciseApiUrl('/api/exercise-state/respond'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ injectId, choice }),

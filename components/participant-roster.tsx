@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { ROLES } from '@/lib/exercise-data'
+import { useExerciseDefinition } from '@/lib/exercise-selection'
 import type { Participant } from '@/lib/exercise-store'
 
 interface ParticipantRosterProps {
@@ -13,6 +13,7 @@ interface ParticipantRosterProps {
 
 export function ParticipantRoster({ participants, id }: ParticipantRosterProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const { roles } = useExerciseDefinition()
   const sortedParticipants = [...participants].sort((a, b) =>
     a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
   )
@@ -52,7 +53,7 @@ export function ParticipantRoster({ participants, id }: ParticipantRosterProps) 
               >
                 <span className="font-medium text-foreground">{participant.name}</span>
                 <span className="text-sm text-muted-foreground">
-                  {ROLES.find((role) => role.id === participant.roleId)?.title ?? 'Role unavailable'}
+                  {roles.find((role) => role.id === participant.roleId)?.title ?? 'Role unavailable'}
                 </span>
               </li>
             ))}

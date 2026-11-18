@@ -16,14 +16,25 @@ const INJECT_IMAGES: Record<string, string> = {
   inj10: '/images/inject10.jpg',
   inj11: '/images/inject11.jpg',
   inj12: '/images/inject12.jpg',
+  'mimosa-tech-1': '/images/Technical-Injects/Technical-Inject1.jpg',
+  'mimosa-tech-2': '/images/Technical-Injects/Technical-Inject2.jpg',
+  'mimosa-tech-3': '/images/Technical-Injects/Technical-Inject3.jpg',
+  'mimosa-tech-4': '/images/Technical-Injects/Technical-Inject4.jpg',
+  'mimosa-tech-5': '/images/Technical-Injects/Technical-Inject5.jpg',
+  'mimosa-management-1': '/images/Management-Injects/Management_Inject1.jpg',
+  'mimosa-management-2': '/images/Management-Injects/Management_Inject2.jpg',
+  'mimosa-management-3': '/images/Management-Injects/Management_Inject3.jpg',
+  'mimosa-management-4': '/images/Management-Injects/Management_Inject4.jpg',
+  'mimosa-management-5': '/images/Management-Injects/Management_Inject5.jpg',
 }
 
 interface VisualImageProps {
   src: string
   alt: string
+  zoom?: boolean
 }
 
-function VisualImage({ src, alt }: VisualImageProps) {
+function VisualImage({ src, alt, zoom = true }: VisualImageProps) {
   const [loaded, setLoaded] = useState(false)
 
   return (
@@ -43,7 +54,7 @@ function VisualImage({ src, alt }: VisualImageProps) {
         fill
         onLoad={() => setLoaded(true)}
         onError={() => setLoaded(true)}
-        className={`scale-[1.2] object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+        className={`${zoom ? 'scale-[1.2] ' : ''}object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
       />
     </figure>
   )
@@ -61,11 +72,14 @@ export function InjectVisual({ injectId, title }: InjectVisualProps) {
   return <VisualImage key={src} src={src} alt={`Scenario visual for ${title}`} />
 }
 
-export function ExerciseOverviewVisual() {
-  return (
-    <VisualImage
-      src="/images/inject0.png"
-      alt="Finance employee reviewing a vendor invoice and spreadsheet"
-    />
-  )
+export function ExerciseOverviewVisual({
+  src = '/images/inject0.png',
+  alt = 'Illustrative tabletop exercise scenario',
+  zoom = false,
+}: {
+  src?: string
+  alt?: string
+  zoom?: boolean
+} = {}) {
+  return <VisualImage src={src} alt={alt} zoom={zoom} />
 }

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { UserPlus } from 'lucide-react'
 import { useExercise } from '@/lib/exercise-store'
-import { ROLES } from '@/lib/exercise-data'
+import { exerciseApiUrl, useExerciseDefinition } from '@/lib/exercise-selection'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,10 +14,15 @@ interface ParticipantsSectionProps {
 
 export function ParticipantsSection({ onContinue }: ParticipantsSectionProps) {
   const { addParticipant, setSyncError } = useExercise()
+  const { roles } = useExerciseDefinition()
   const [name, setName] = useState('')
-  const [roleId, setRoleId] = useState(ROLES[0]?.id ?? 'incident-commander')
+  const [roleId, setRoleId] = useState(roles[0]?.id ?? 'incident-commander')
   const [joining, setJoining] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!roles.some((role) => role.id === roleId)) setRoleId(roles[0]?.id ?? '')
+  }, [roles, roleId])
 
   const canSubmit = name.trim().length > 0 && roleId.length > 0
 
@@ -28,7 +33,7 @@ export function ParticipantsSection({ onContinue }: ParticipantsSectionProps) {
     setJoining(true)
     setJoinError(null)
     try {
-      const response = await fetch('/api/exercise-state/join', {
+      const response = await fetch(exerciseApiUrl('/api/exercise-state/join'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name.trim(), roleId }),
@@ -88,7 +93,7 @@ export function ParticipantsSection({ onContinue }: ParticipantsSectionProps) {
                 onChange={(e) => setRoleId(e.target.value as typeof roleId)}
                 className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/40"
               >
-                {ROLES.map((role) => (
+                {roles.map((role) => (
                   <option key={role.id} value={role.id}>
                     {role.title}
                   </option>

@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto'
 import { Pool, type PoolClient } from 'pg'
-import { EXERCISE_META } from './exercise-data'
+import { getExerciseDefinition } from './exercise-instances'
 import type { ExerciseState, Participant, ParticipantResponse } from './exercise-store'
 
 declare global {
@@ -21,13 +21,28 @@ function getPool() {
   return pool
 }
 
-async function ensureResponseStorage(): Promise<void> {
+async function ensureExerciseStorage(): Promise<void> {
   if (responseStorageReady) return responseStorageReady
 
   const migration = (async () => {
     const client = await getPool().connect()
     try {
       await client.query('BEGIN')
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS exercise_instance_states (
+          instance_id text PRIMARY KEY,
+          state jsonb NOT NULL,
+          version bigint NOT NULL DEFAULT 0,
+          updated_at timestamptz NOT NULL DEFAULT now()
+        )
+      `)
+      await client.query(`
+        INSERT INTO exercise_instance_states (instance_id, state, version, updated_at)
+        SELECT 'meridian', jsonb_set(state, '{responses}', '[]'::jsonb, true), version, updated_at
+        FROM exercise_state
+        WHERE id = 1
+        ON CONFLICT (instance_id) DO NOTHING
+      `)
       await client.query(`
         CREATE TABLE IF NOT EXISTS exercise_responses (
           id text PRIMARY KEY,
@@ -66,6 +81,23 @@ async function ensureResponseStorage(): Promise<void> {
         WHERE jsonb_typeof(state->'responses') = 'array'
           AND jsonb_array_length(state->'responses') > 0
       `)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS exercise_instance_responses (
+          id text PRIMARY KEY,
+          instance_id text NOT NULL,
+          participant_id text NOT NULL,
+          inject_id text NOT NULL,
+          choice text NOT NULL,
+          submitted_at bigint NOT NULL,
+          UNIQUE (instance_id, participant_id, inject_id)
+        )
+      `)
+      await client.query(`
+        INSERT INTO exercise_instance_responses (id, instance_id, participant_id, inject_id, choice, submitted_at)
+        SELECT id, 'meridian', participant_id, inject_id, choice, submitted_at
+        FROM exercise_responses
+        ON CONFLICT DO NOTHING
+      `)
       await client.query('COMMIT')
     } catch (error) {
       await client.query('ROLLBACK')
@@ -83,12 +115,13 @@ async function ensureResponseStorage(): Promise<void> {
 }
 
 export function createDefaultExerciseState(): ExerciseState {
+  const definition = getExerciseDefinition('meridian')
   return {
     settings: {
-      title: EXERCISE_META.defaultTitle,
-      organization: EXERCISE_META.defaultOrg,
-      facilitator: EXERCISE_META.defaultFacilitator,
-      durationMinutes: EXERCISE_META.defaultDurationMinutes,
+      title: definition.title,
+      organization: definition.organization,
+      facilitator: 'A. Rivera, CISM',
+      durationMinutes: definition.durationMinutes,
       theme: 'light',
       autoSave: true,
       sound: true,
@@ -115,6 +148,20 @@ export function createDefaultExerciseState(): ExerciseState {
   }
 }
 
+function createInstanceDefaultState(instanceId: string): ExerciseState {
+  const state = createDefaultExerciseState()
+  const definition = getExerciseDefinition(instanceId)
+  return {
+    ...state,
+    settings: {
+      ...state.settings,
+      title: definition.title,
+      organization: definition.organization,
+      durationMinutes: definition.durationMinutes,
+    },
+  }
+}
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
   const prototype = Object.getPrototypeOf(value)
@@ -133,17 +180,19 @@ function deepMerge(target: Record<string, unknown>, source: Record<string, unkno
   return result
 }
 
-async function lockAndRead(client: PoolClient): Promise<ExerciseState> {
-  await client.query('SELECT pg_advisory_xact_lock($1)', [741920681])
+async function lockAndRead(client: PoolClient, instanceId: string): Promise<ExerciseState> {
+  await client.query("SELECT pg_advisory_xact_lock(hashtext('exercise:' || $1))", [instanceId])
   const result = await client.query<{ state: ExerciseState }>(
-    'SELECT state FROM exercise_state WHERE id = 1'
+    'SELECT state FROM exercise_instance_states WHERE instance_id = $1',
+    [instanceId],
   )
   if (result.rows[0]) return result.rows[0].state
 
-  const initialState = createDefaultExerciseState()
+  const initialState = createInstanceDefaultState(instanceId)
   await client.query(
-    'INSERT INTO exercise_state (id, state) VALUES (1, $1::jsonb) ON CONFLICT (id) DO NOTHING',
-    [JSON.stringify(initialState)]
+    `INSERT INTO exercise_instance_states (instance_id, state)
+     VALUES ($1, $2::jsonb) ON CONFLICT (instance_id) DO NOTHING`,
+    [instanceId, JSON.stringify(initialState)]
   )
   return initialState
 }
@@ -163,12 +212,13 @@ async function transaction<T>(operation: (client: PoolClient) => Promise<T>): Pr
   }
 }
 
-export async function getExerciseState(): Promise<ExerciseState> {
-  await ensureResponseStorage()
+export async function getExerciseState(instanceId: string): Promise<ExerciseState> {
+  await ensureExerciseStorage()
   const result = await getPool().query<{ state: ExerciseState }>(
-    'SELECT state FROM exercise_state WHERE id = 1'
+    'SELECT state FROM exercise_instance_states WHERE instance_id = $1',
+    [instanceId],
   )
-  const state = result.rows[0]?.state ?? createDefaultExerciseState()
+  const state = result.rows[0]?.state ?? createInstanceDefaultState(instanceId)
   const responses = await getPool().query<ParticipantResponse>(
     `SELECT
        id,
@@ -176,21 +226,24 @@ export async function getExerciseState(): Promise<ExerciseState> {
        inject_id AS "injectId",
        choice,
        submitted_at::double precision AS "submittedAt"
-     FROM exercise_responses
-     ORDER BY submitted_at, id`
+     FROM exercise_instance_responses
+     WHERE instance_id = $1
+     ORDER BY submitted_at, id`,
+    [instanceId],
   )
   return { ...state, responses: responses.rows }
 }
 
 export async function patchExerciseState(
+  instanceId: string,
   patch: Record<string, unknown>
 ): Promise<ExerciseState> {
-  await ensureResponseStorage()
+  await ensureExerciseStorage()
   return transaction(async (client) => {
-    const current = await lockAndRead(client)
+    const current = await lockAndRead(client, instanceId)
     const merged = deepMerge(current as unknown as Record<string, unknown>, patch)
     if (Array.isArray(patch.responses)) {
-      await client.query('DELETE FROM exercise_responses')
+      await client.query('DELETE FROM exercise_instance_responses WHERE instance_id = $1', [instanceId])
       for (const response of patch.responses) {
         if (
           typeof response !== 'object' ||
@@ -204,32 +257,34 @@ export async function patchExerciseState(
           throw new Error('Invalid participant response in state patch')
         }
         await client.query(
-          `INSERT INTO exercise_responses (id, participant_id, inject_id, choice, submitted_at)
-           VALUES ($1, $2, $3, $4, $5)
-           ON CONFLICT (participant_id, inject_id) DO NOTHING`,
-          [response.id, response.participantId, response.injectId, response.choice, response.submittedAt],
+          `INSERT INTO exercise_instance_responses
+             (id, instance_id, participant_id, inject_id, choice, submitted_at)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (instance_id, participant_id, inject_id) DO NOTHING`,
+          [response.id, instanceId, response.participantId, response.injectId, response.choice, response.submittedAt],
         )
       }
     }
     await client.query(
-      `INSERT INTO exercise_state (id, state, version, updated_at)
-       VALUES (1, $1::jsonb, 1, now())
-       ON CONFLICT (id) DO UPDATE
+      `INSERT INTO exercise_instance_states (instance_id, state, version, updated_at)
+       VALUES ($1, $2::jsonb, 1, now())
+       ON CONFLICT (instance_id) DO UPDATE
        SET state = EXCLUDED.state,
-           version = exercise_state.version + 1,
+           version = exercise_instance_states.version + 1,
            updated_at = now()`,
-      [JSON.stringify(merged)]
+      [instanceId, JSON.stringify(merged)]
     )
     return merged as unknown as ExerciseState
   })
 }
 
 export async function joinExercise(
+  instanceId: string,
   input: Pick<Participant, 'deviceId' | 'name' | 'roleId'>
 ): Promise<{ participant: Participant; totalParticipants: number }> {
-  await ensureResponseStorage()
+  await ensureExerciseStorage()
   return transaction(async (client) => {
-    const state = await lockAndRead(client)
+    const state = await lockAndRead(client, instanceId)
     const participants = state.participants ?? []
     let participant = participants.find((item) => item.deviceId === input.deviceId)
 
@@ -240,35 +295,36 @@ export async function joinExercise(
 
     const nextState = { ...state, participants }
     await client.query(
-      `INSERT INTO exercise_state (id, state, version, updated_at)
-       VALUES (1, $1::jsonb, 1, now())
-       ON CONFLICT (id) DO UPDATE
+      `INSERT INTO exercise_instance_states (instance_id, state, version, updated_at)
+       VALUES ($1, $2::jsonb, 1, now())
+       ON CONFLICT (instance_id) DO UPDATE
        SET state = EXCLUDED.state,
-           version = exercise_state.version + 1,
+           version = exercise_instance_states.version + 1,
            updated_at = now()`,
-      [JSON.stringify(nextState)]
+      [instanceId, JSON.stringify(nextState)]
     )
     return { participant, totalParticipants: participants.length }
   })
 }
 
 export async function submitExerciseResponse(
+  instanceId: string,
   input: Pick<ParticipantResponse, 'participantId' | 'injectId' | 'choice'>
 ): Promise<{ response: ParticipantResponse; totalResponses: number }> {
-  await ensureResponseStorage()
+  await ensureExerciseStorage()
   return transaction(async (client) => {
     const submittedAt = Date.now()
     const inserted = await client.query<ParticipantResponse>(
-      `INSERT INTO exercise_responses (id, participant_id, inject_id, choice, submitted_at)
-       VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (participant_id, inject_id) DO NOTHING
+      `INSERT INTO exercise_instance_responses (id, instance_id, participant_id, inject_id, choice, submitted_at)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (instance_id, participant_id, inject_id) DO NOTHING
        RETURNING
          id,
          participant_id AS "participantId",
          inject_id AS "injectId",
          choice,
          submitted_at::double precision AS "submittedAt"`,
-      [randomUUID(), input.participantId, input.injectId, input.choice, submittedAt],
+      [randomUUID(), instanceId, input.participantId, input.injectId, input.choice, submittedAt],
     )
     const savedResponse = inserted.rows[0] ?? (
       await client.query<ParticipantResponse>(
@@ -278,14 +334,15 @@ export async function submitExerciseResponse(
            inject_id AS "injectId",
            choice,
            submitted_at::double precision AS "submittedAt"
-         FROM exercise_responses
-         WHERE participant_id = $1 AND inject_id = $2`,
-        [input.participantId, input.injectId],
+         FROM exercise_instance_responses
+         WHERE instance_id = $1 AND participant_id = $2 AND inject_id = $3`,
+        [instanceId, input.participantId, input.injectId],
       )
     ).rows[0]
     if (!savedResponse) throw new Error('Could not load the saved participant response')
     const count = await client.query<{ total: string }>(
-      'SELECT count(*)::text AS total FROM exercise_responses',
+      'SELECT count(*)::text AS total FROM exercise_instance_responses WHERE instance_id = $1',
+      [instanceId],
     )
     return { response: savedResponse, totalResponses: Number(count.rows[0]?.total ?? 0) }
   })

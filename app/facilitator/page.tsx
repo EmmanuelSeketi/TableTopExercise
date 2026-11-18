@@ -2,12 +2,18 @@
 
 import { useMemo } from 'react'
 import { RotateCcw } from 'lucide-react'
-import { INJECTS, ROLES } from '@/lib/exercise-data'
+import {
+  ExerciseClosing,
+  ExerciseOverview,
+  ExerciseSessionFlow,
+} from '@/components/exercise-overview'
+import { InjectVisual } from '@/components/inject-visual'
+import { useExerciseDefinition } from '@/lib/exercise-selection'
+import { getCurrentExerciseStep } from '@/lib/exercise-navigation'
 import { useExercise } from '@/lib/exercise-store'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { InjectVisual } from '@/components/inject-visual'
 import { ParticipantRoster } from '@/components/participant-roster'
 
 const ROLE_CHART_COLORS = [
@@ -23,7 +29,11 @@ const ROLE_CHART_COLORS = [
 
 export default function FacilitatorPage() {
   const { state, setActiveInject, resetAll, hydrated, toggleInject } = useExercise()
-  const activeInject = INJECTS.find((inject) => inject.id === state.activeInjectId)
+  const definition = useExerciseDefinition()
+  const { roles } = definition
+  const { steps: exerciseSteps, step: activeStep } =
+    getCurrentExerciseStep(definition, state.activeInjectId)
+  const activeInject = activeStep.kind === 'inject' ? activeStep.inject : null
 
   const roleCounts = useMemo(() => {
     return state.participants.reduce<Record<string, number>>((acc, participant) => {
@@ -53,7 +63,7 @@ export default function FacilitatorPage() {
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <Card>
           <CardHeader>
-            <CardTitle className="text-primary">Active inject control</CardTitle>
+            <CardTitle className="text-primary">Active exercise step</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 p-5">
             {activeInject ? (
@@ -64,17 +74,25 @@ export default function FacilitatorPage() {
                 </div>
                 <p className="text-justify text-sm leading-relaxed text-muted-foreground">{activeInject.description}</p>
                 <InjectVisual injectId={activeInject.id} title={activeInject.title} />
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" onClick={() => setActiveInject(null)}>
-                    Deactivate inject
-                  </Button>
-                </div>
+                {activeInject.discussionPoints && (
+                  <section className="space-y-2 rounded-xl border border-border/70 bg-muted/30 p-4">
+                    <h3 className="text-sm font-semibold">Discussion points</h3>
+                    <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+                      {activeInject.discussionPoints.map((point) => (
+                        <li key={`${point.role}-${point.prompt}`}>
+                          <span className="font-medium text-foreground">{point.role}:</span> {point.prompt}
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
+                )}
               </div>
+            ) : activeStep.kind === 'session-flow' ? (
+              <ExerciseSessionFlow definition={definition} />
+            ) : activeStep.kind === 'closing' ? (
+              <ExerciseClosing definition={definition} />
             ) : (
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-foreground">No active inject selected.</p>
-                <p className="text-justify text-sm leading-relaxed text-muted-foreground">Select an inject below to make it visible to participants and the projector.</p>
-              </div>
+              <ExerciseOverview definition={definition} />
             )}
           </CardContent>
         </Card>
@@ -88,7 +106,7 @@ export default function FacilitatorPage() {
             <ParticipantRoster participants={state.participants} id="facilitator-participants" />
             <div className="rounded-xl border border-border/70 bg-muted/40 p-4">
               <div className="space-y-3">
-                {ROLES.map((role, index) => {
+                {roles.map((role, index) => {
                   const count = roleCounts[role.id] ?? 0
                   const widthPct = maxRoleCount > 0 ? (count / maxRoleCount) * 100 : 0
                   const color = ROLE_CHART_COLORS[index % ROLE_CHART_COLORS.length]
@@ -118,27 +136,44 @@ export default function FacilitatorPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-primary">Inject list</CardTitle>
+          <CardTitle className="text-primary">Exercise flow</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 p-5">
-          {INJECTS.map((inject) => {
-            const isActive = state.activeInjectId === inject.id
-            const isCompleted = state.completedInjects.includes(inject.id)
+          {exerciseSteps.map((step) => {
+            const isActive = activeStep.id === step.id
+            const isInject = step.kind === 'inject'
+            const isCompleted = isInject && state.completedInjects.includes(step.id)
+            const stepDescription = step.kind === 'inject'
+              ? `${step.inject.time} · ${step.inject.nist}`
+              : step.kind === 'session-flow'
+                ? `${definition.sessionFlow?.length ?? 0} stages · ${definition.durationMinutes} minutes`
+                : step.kind === 'overview'
+                  ? 'Scenario briefing'
+                  : 'Final debrief'
+
             return (
-              <div key={inject.id} className={`grid gap-3 rounded-xl border border-border/70 p-4 transition-colors sm:grid-cols-[1fr_auto] ${isActive ? 'border-primary/40 bg-primary/5' : 'bg-card'}`}>
+              <div key={step.id} className={`grid gap-3 rounded-xl border border-border/70 p-4 transition-colors sm:grid-cols-[1fr_auto] ${isActive ? 'border-primary/40 bg-primary/5' : 'bg-card'}`}>
                 <div>
-                  <p className="font-semibold text-foreground">{inject.title}</p>
-                  <p className="text-sm text-muted-foreground">{inject.time} · {inject.nist}</p>
+                  <p className="font-semibold text-foreground">{step.title}</p>
+                  <p className="text-sm text-muted-foreground">{stepDescription}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {isActive ? <Badge variant="success">Active</Badge> : null}
                   {isCompleted ? <Badge variant="secondary">Completed</Badge> : null}
-                  <Button variant={isActive ? 'secondary' : 'default'} size="sm" onClick={() => setActiveInject(isActive ? null : inject.id)}>
-                    {isActive ? 'Deactivate' : 'Activate'}
-                  </Button>
-                  <Button variant={isCompleted ? 'ghost' : 'secondary'} size="sm" onClick={() => toggleInject(inject.id)}>
-                    {isCompleted ? 'Undo complete' : 'Mark complete'}
-                  </Button>
+                  {!isActive && (
+                    <Button size="sm" onClick={() => setActiveInject(step.id)}>
+                      Show step
+                    </Button>
+                  )}
+                  {step.kind === 'inject' && (
+                    <Button
+                      variant={isCompleted ? 'ghost' : 'secondary'}
+                      size="sm"
+                      onClick={() => toggleInject(step.id)}
+                    >
+                      {isCompleted ? 'Undo complete' : 'Mark complete'}
+                    </Button>
+                  )}
                 </div>
               </div>
             )

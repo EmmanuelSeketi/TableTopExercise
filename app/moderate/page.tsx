@@ -1,13 +1,20 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, Minus, XCircle } from 'lucide-react'
-import { INJECTS, ROLES } from '@/lib/exercise-data'
-import { ExerciseOverviewVisual, InjectVisual } from '@/components/inject-visual'
+import { CheckCircle2, ChevronLeft, ChevronRight, MessageSquareText, Minus, XCircle } from 'lucide-react'
+import { useExerciseDefinition } from '@/lib/exercise-selection'
+import {
+  ExerciseClosing,
+  ExerciseOverview,
+  ExerciseSessionFlow,
+} from '@/components/exercise-overview'
+import { InjectVisual } from '@/components/inject-visual'
 import { ParticipantRoster } from '@/components/participant-roster'
 import { useExercise } from '@/lib/exercise-store'
+import { getCurrentExerciseStep } from '@/lib/exercise-navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 
 const RESPONSE_TYPES = [
   {
@@ -34,16 +41,24 @@ const RESPONSE_TYPES = [
 ] as const
 
 export default function ModeratePage() {
-  const { state } = useExercise()
-  const activeInject = INJECTS.find((inject) => inject.id === state.activeInjectId)
-  const [selectedInjectId, setSelectedInjectId] = useState(state.activeInjectId ?? INJECTS[0].id)
+  const { state, setActiveInject } = useExercise()
+  const definition = useExerciseDefinition()
+  const { injects, roles } = definition
+  const { steps: exerciseSteps, index: activeStepIndex, step: activeStep } =
+    getCurrentExerciseStep(definition, state.activeInjectId)
+  const activeInject = activeStep.kind === 'inject' ? activeStep.inject : undefined
+  const [selectedInjectId, setSelectedInjectId] = useState(state.activeInjectId ?? injects[0].id)
   const [selectedOutcome, setSelectedOutcome] = useState<string | null>(null)
+  const [discussionOpen, setDiscussionOpen] = useState(false)
+  const [discussionPointIndex, setDiscussionPointIndex] = useState(0)
 
   useEffect(() => {
-    if (state.activeInjectId) setSelectedInjectId(state.activeInjectId)
-  }, [state.activeInjectId])
+    if (activeStep.kind === 'inject') setSelectedInjectId(activeStep.id)
+    setDiscussionOpen(false)
+    setDiscussionPointIndex(0)
+  }, [state.activeInjectId, activeStep.id, activeStep.kind])
 
-  const selectedInject = INJECTS.find((inject) => inject.id === selectedInjectId) ?? INJECTS[0]
+  const selectedInject = injects.find((inject) => inject.id === selectedInjectId) ?? injects[0]
 
   const responsesByOutcome = useMemo(() => {
     const participantsByDeviceId = new Map(
@@ -65,7 +80,7 @@ export default function ModeratePage() {
           return {
             ...response,
             name: participant?.name ?? 'Registration unavailable',
-            role: ROLES.find((item) => item.id === participant?.roleId)?.title ?? 'Role unavailable',
+            role: roles.find((item) => item.id === participant?.roleId)?.title ?? 'Role unavailable',
             choiceLabel: choice?.label ?? 'Choice no longer available',
           }
         }),
@@ -74,6 +89,16 @@ export default function ModeratePage() {
 
   const selectedGroup = responsesByOutcome.find((group) => group.type === selectedOutcome)
   const injectResponseCount = responsesByOutcome.reduce((total, group) => total + group.responses.length, 0)
+
+  function activateStep(index: number) {
+    const step = exerciseSteps[index]
+    if (!step) return
+    setActiveInject(step.id)
+    if (step.kind === 'inject') setSelectedInjectId(step.id)
+    setSelectedOutcome(null)
+  }
+
+  const discussionPoints = activeInject?.discussionPoints ?? []
 
   return (
     <div className="mx-auto w-full max-w-[90rem] space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
@@ -88,13 +113,53 @@ export default function ModeratePage() {
                 </div>
                 <p className="text-justify text-sm leading-relaxed text-muted-foreground">{activeInject.description}</p>
                 <InjectVisual injectId={activeInject.id} title={activeInject.title} />
+                {discussionPoints.length > 0 && (
+                  <div className="space-y-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      aria-expanded={discussionOpen}
+                      onClick={() => setDiscussionOpen((open) => !open)}
+                    >
+                      <MessageSquareText className="size-4" />
+                      {discussionOpen ? 'Hide discussion' : 'Show discussion'}
+                    </Button>
+                    {discussionOpen && (
+                      <section className="space-y-3 rounded-xl border border-border/70 bg-muted/30 p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <h2 className="text-sm font-semibold text-foreground">
+                            {discussionPoints[discussionPointIndex]?.role}
+                          </h2>
+                          <div className="flex items-center gap-1.5" aria-label="Choose discussion point">
+                            {discussionPoints.map((_, index) => (
+                              <Button
+                                key={index}
+                                type="button"
+                                size="sm"
+                                variant={discussionPointIndex === index ? 'default' : 'outline'}
+                                aria-label={`Show discussion point ${index + 1}`}
+                                aria-pressed={discussionPointIndex === index}
+                                onClick={() => setDiscussionPointIndex(index)}
+                              >
+                                {index + 1}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-sm leading-relaxed text-muted-foreground" aria-live="polite">
+                          {discussionPoints[discussionPointIndex]?.prompt}
+                        </p>
+                      </section>
+                    )}
+                  </div>
+                )}
               </div>
+            ) : activeStep.kind === 'session-flow' ? (
+              <ExerciseSessionFlow definition={definition} />
+            ) : activeStep.kind === 'closing' ? (
+              <ExerciseClosing definition={definition} />
             ) : (
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-foreground">Overview</p>
-                <ExerciseOverviewVisual />
-                <p className="text-justify text-sm leading-relaxed text-muted-foreground">It is 09:14 AM on a Tuesday morning. Mutinta Banda, a senior accountant in the Finance department at Meridian Financial Group, receives an email that looks like it is from a vendor the company already works with. The subject line reads “Updated Q3 Invoice – Action Required,” and it includes an attached spreadsheet. Mutinta opens the attachment. A pop-up tells her she needs to click a button to view the file properly, so she does without realizing it, that click quietly installs harmful software on her computer. Within minutes, an attacker has a foothold on her machine and starts exploring the rest of the company's network from there. Over the next hour, what started as one employee opening one email escalates into a company-wide ransomware attack that knocks out the finance department's file server and disrupts business across the organization.</p>
-              </div>
+              <ExerciseOverview definition={definition} />
             )}
           </CardContent>
         </Card>
@@ -142,7 +207,7 @@ export default function ModeratePage() {
               }}
               className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/40"
             >
-              {INJECTS.map((inject) => (
+              {injects.map((inject) => (
                 <option key={inject.id} value={inject.id}>
                   {inject.order}. {inject.title}
                 </option>
@@ -183,6 +248,27 @@ export default function ModeratePage() {
                 )}
               </section>
             )}
+            <div className="flex flex-col gap-3 border-t border-border/70 pt-4 sm:flex-row sm:items-center sm:justify-end">
+              <div className="flex gap-2 sm:ml-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={activeStepIndex <= 0}
+                  onClick={() => activateStep(activeStepIndex - 1)}
+                >
+                  <ChevronLeft className="size-4" />
+                  Previous
+                </Button>
+                <Button
+                  type="button"
+                  disabled={activeStepIndex >= exerciseSteps.length - 1}
+                  onClick={() => activateStep(activeStepIndex + 1)}
+                >
+                  Next
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

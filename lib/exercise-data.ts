@@ -12,6 +12,18 @@ export type RoleId =
   | 'legal-counsel'
   | 'executive'
   | 'observer'
+  | 'ict-manager'
+  | 'network-telecommunications'
+  | 'engineering-electrical'
+  | 'mine-control'
+  | 'safety-hse'
+  | 'bcms'
+  | 'general-manager'
+  | 'bcms-lead'
+  | 'management-ict'
+  | 'supply-chain'
+  | 'finance'
+  | 'maintenance-mining'
 
 export interface Role {
   id: RoleId
@@ -47,6 +59,10 @@ export interface Inject {
   }[]
   facilitatorNotes: string
   hint: string
+  discussionPoints?: {
+    role: string
+    prompt: string
+  }[]
   mitre?: string
   nist: string
 }

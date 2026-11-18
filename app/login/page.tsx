@@ -1,13 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -28,7 +26,9 @@ export default function LoginPage() {
       if (!response.ok) throw new Error(result.error ?? `Sign in failed (${response.status})`)
 
       const destination = new URLSearchParams(window.location.search).get('next')
-      router.replace(destination?.startsWith('/') && !destination.startsWith('//') ? destination : '/facilitator')
+      window.location.replace(
+        destination?.startsWith('/') && !destination.startsWith('//') ? destination : '/facilitator',
+      )
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Sign in failed')
     } finally {

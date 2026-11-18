@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getExerciseState, patchExerciseState } from '@/lib/exercise-database'
 import { getParticipantDeviceId, hasSameOrigin, isAdminRequest } from '@/lib/exercise-auth'
+import { getExerciseIdFromUrl } from '@/lib/exercise-instances'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -17,8 +18,10 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 export async function GET(request: Request) {
+  const instanceId = getExerciseIdFromUrl(request.url)
+  if (!instanceId) return NextResponse.json({ error: 'Unknown exercise instance' }, { status: 400 })
   try {
-    const state = await getExerciseState()
+    const state = await getExerciseState(instanceId)
     const participantDeviceId = getParticipantDeviceId(request) ?? null
     const visibleState = isAdminRequest(request)
       ? { ...state, currentParticipantId: participantDeviceId }
@@ -58,8 +61,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Request body must be a JSON object' }, { status: 400 })
   }
 
+  const instanceId = getExerciseIdFromUrl(request.url)
+  if (!instanceId) return NextResponse.json({ error: 'Unknown exercise instance' }, { status: 400 })
   try {
-    return NextResponse.json(await patchExerciseState(patch), {
+    return NextResponse.json(await patchExerciseState(instanceId, patch), {
       headers: { 'Cache-Control': 'no-store' },
     })
   } catch (error) {

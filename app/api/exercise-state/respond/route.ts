@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
 import { getExerciseState, submitExerciseResponse } from '@/lib/exercise-database'
 import { getParticipantDeviceId, hasSameOrigin } from '@/lib/exercise-auth'
-import { INJECTS } from '@/lib/exercise-data'
+import { getExerciseDefinition, getExerciseIdFromUrl } from '@/lib/exercise-instances'
 
 export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
   if (!hasSameOrigin(request)) return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 })
+  const instanceId = getExerciseIdFromUrl(request.url)
+  if (!instanceId) return NextResponse.json({ error: 'Unknown exercise instance' }, { status: 400 })
   const participantId = getParticipantDeviceId(request)
   if (!participantId) return NextResponse.json({ error: 'Join the exercise before responding' }, { status: 401 })
 
@@ -34,15 +36,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    const inject = INJECTS.find((item) => item.id === body.injectId)
+    const inject = getExerciseDefinition(instanceId).injects.find((item) => item.id === body.injectId)
     if (!inject?.choices.some((choice) => choice.id === body.choice)) {
       return NextResponse.json({ error: 'The selected inject or answer is invalid' }, { status: 400 })
     }
-    const state = await getExerciseState()
+    const state = await getExerciseState(instanceId)
     if (!state.participants.some((participant) => participant.deviceId === participantId)) {
       return NextResponse.json({ error: 'Participant registration was not found; please join again' }, { status: 401 })
     }
-    const result = await submitExerciseResponse({
+    const result = await submitExerciseResponse(instanceId, {
       participantId,
       injectId: body.injectId.trim(),
       choice: body.choice.trim(),
