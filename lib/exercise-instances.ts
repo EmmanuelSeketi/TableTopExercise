@@ -103,6 +103,11 @@ const mimosaInjects: Inject[] = [
     ],
     facilitatorNotes: 'Look for a coordinated incident record, impact assessment and parallel technical checks.',
     hint: 'Establish what is affected and what remains available before classifying the response.',
+    discussionPoints: [
+      { role: 'ICT Manager', prompt: 'How will you classify the incident, coordinate the initial checks and communicate the confirmed impact?' },
+      { role: 'Mine Control / Mining Operations', prompt: 'Which work areas and safety-dependent activities could be affected, and what information do supervisors need now?' },
+      { role: 'Safety / HSE', prompt: 'What immediate risks or operating restrictions should be considered while communications remain unreliable?' },
+    ],
   },
   {
     id: 'mimosa-tech-2', order: 2, time: '08:45', phase: 'Assessment and safe containment',
@@ -117,6 +122,11 @@ const mimosaInjects: Inject[] = [
     ],
     facilitatorNotes: 'Discuss fallback coverage, operational restrictions and non-disruptive investigation.',
     hint: 'An alternative is only a fallback after the relevant coverage and safety needs are verified.',
+    discussionPoints: [
+      { role: 'Safety / HSE', prompt: 'What must be verified before handheld radios can be treated as a safe alternative throughout the affected section?' },
+      { role: 'Mine Control / Mining Operations', prompt: 'Which activities should be restricted until communication and monitoring needs are reliably supported?' },
+      { role: 'Network & Telecommunications', prompt: 'How can the team test coverage and continue diagnosis without disrupting remaining services?' },
+    ],
   },
   {
     id: 'mimosa-tech-3', order: 3, time: '09:50', phase: 'Investigation and root-cause control',
@@ -131,6 +141,11 @@ const mimosaInjects: Inject[] = [
     ],
     facilitatorNotes: 'Explore evidence-led diagnosis, safe testing and the risk of unvalidated live changes.',
     hint: 'A coincident alarm is not proof of cause; distinguish path instability from server failure.',
+    discussionPoints: [
+      { role: 'Network & Telecommunications', prompt: 'What evidence would help distinguish power-related faults from instability on the communications path?' },
+      { role: 'Engineering / Electrical', prompt: 'Which power-quality checks can be performed safely, and what would confirm whether the alarm is related?' },
+      { role: 'ICT Manager', prompt: 'What approvals, rollback plans and service checks are needed before testing a restart or alternate route?' },
+    ],
   },
   {
     id: 'mimosa-tech-4', order: 4, time: '11:35', phase: 'Escalation and recovery decision',
@@ -145,6 +160,11 @@ const mimosaInjects: Inject[] = [
     ],
     facilitatorNotes: 'Escalate before a likely target breach with verified information and feasible, approved options.',
     hint: 'A recovery target is not a reason to deploy an unvalidated workaround.',
+    discussionPoints: [
+      { role: 'ICT Manager', prompt: 'What verified impact, time-to-target, recovery options and unresolved risks should be escalated now?' },
+      { role: 'BCMS Representative', prompt: 'Which authorised decision-makers need to be involved before the recovery target is missed?' },
+      { role: 'Safety / HSE', prompt: 'What safety restrictions must remain in place while the proposed workaround is unvalidated?' },
+    ],
   },
   {
     id: 'mimosa-tech-5', order: 5, time: '12:20', phase: 'Verification, restoration and review',
@@ -159,6 +179,11 @@ const mimosaInjects: Inject[] = [
     ],
     facilitatorNotes: 'Verify at the user locations, coordinate safe resumption, record the recovery-target breach and capture actions.',
     hint: 'A green dashboard and a successful test call do not confirm service across all affected locations.',
+    discussionPoints: [
+      { role: 'Network & Telecommunications', prompt: 'Which end-to-end tests are needed to verify every affected extension and communications path?' },
+      { role: 'Mine Control / Mining Operations', prompt: 'What confirmation is needed from supervisors before affected work can safely resume?' },
+      { role: 'BCMS Representative', prompt: 'How should the team record the missed recovery target, residual issues and improvement actions?' },
+    ],
   },
 ]
 
