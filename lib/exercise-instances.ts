@@ -265,7 +265,7 @@ const mimosaManagementInjects: Inject[] = [
     description: 'It is Friday morning at Mimosa Mine. Since 08:00, departments have reported difficulty accessing Microsoft Dynamics 365. Procurement transactions, maintenance records and some payment processing are affected. Mimosa’s internal network appears to be working normally, and Microsoft has reported a wider service disruption without an estimated restoration time. At 08:30, the ICT Manager escalates the issue to management.',
     evidence: 'Supply Chain cannot process procurement transactions; Plant and Maintenance cannot update records or process some equipment transactions; Finance reports payment-processing difficulties. Microsoft has no restoration estimate.',
     choices: [
-      { id: 'a', type: 'neutral', label: 'Direct ICT to continue supplier escalation and provide hourly status updates; reconsider business impact when a restoration estimate is available.' },
+      { id: 'a', type: 'wrong', label: 'Direct ICT to continue supplier escalation and provide hourly status updates; reconsider business impact when a restoration estimate is available.' },
       { id: 'b', type: 'correct', label: 'Request ICT’s verified impact, urgency, classification and supplier status; ask process owners to identify critical activities and recovery targets, and set a prompt management decision checkpoint.' },
       { id: 'c', type: 'wrong', label: 'Allow all affected departments to begin temporary manual processing immediately, with records to be reconciled when Dynamics 365 is restored.' },
       { id: 'd', type: 'wrong', label: 'Ask the General Manager to activate the full Business Continuity Plan immediately because Dynamics 365 is classified as P1 — Critical.' },
@@ -286,7 +286,7 @@ const mimosaManagementInjects: Inject[] = [
     choices: [
       { id: 'a', type: 'wrong', label: 'Prepare the local disaster recovery infrastructure to restore Dynamics 365 from the latest backups while Microsoft continues its investigation.' },
       { id: 'b', type: 'correct', label: 'Have ICT and process owners establish what is affected, confirm the supplier-side evidence, identify safety and business consequences, and verify whether any approved fallback can actually operate.' },
-      { id: 'c', type: 'neutral', label: 'Ask each affected department to use its usual downtime arrangements and report the outcome to management at the next shift handover.' },
+      { id: 'c', type: 'wrong', label: 'Ask each affected department to use its usual downtime arrangements and report the outcome to management at the next shift handover.' },
       { id: 'd', type: 'wrong', label: 'Treat the outage primarily as a supplier SLA matter and delay decisions on internal continuity until Microsoft confirms its restoration timetable.' },
     ],
     facilitatorNotes: 'Assess cause, operational exposure and whether any existing fallback is approved and workable.',
@@ -306,7 +306,7 @@ const mimosaManagementInjects: Inject[] = [
       { id: 'a', type: 'wrong', label: 'Continue under normal incident response until the four-hour recovery threshold has actually been exceeded, then escalate for a continuity decision.' },
       { id: 'b', type: 'wrong', label: 'Activate the local ICT disaster recovery site immediately as the primary means of restoring Microsoft-hosted Dynamics 365 services.' },
       { id: 'c', type: 'correct', label: 'Bring the likely RTO breach, affected processes and available options to the MD/GM or appropriate authorised leader now for a BCP decision, recovery priorities and controlled resource commitments, while ICT continues supplier escalation.' },
-      { id: 'd', type: 'neutral', label: 'Permit each department to implement its own temporary operating arrangement and seek formal management endorsement once Microsoft confirms an expected recovery time.' },
+      { id: 'd', type: 'wrong', label: 'Permit each department to implement its own temporary operating arrangement and seek formal management endorsement once Microsoft confirms an expected recovery time.' },
     ],
     facilitatorNotes: 'Put the likely RTO breach and decision-ready options before the authorised leader before the target is exceeded.',
     hint: 'The RTO is approaching; escalate with verified impact, options and remaining uncertainty.',
@@ -324,7 +324,7 @@ const mimosaManagementInjects: Inject[] = [
     choices: [
       { id: 'a', type: 'correct', label: 'Consider a time-limited manual process only if the appropriate owners and approvers confirm safety, delegated authority, required financial controls, an audit trail and reconciliation; otherwise restrict the affected activity.' },
       { id: 'b', type: 'wrong', label: 'Permit emergency procurement and inventory recording now, relying on each department to reconstruct supporting records after Dynamics 365 is restored.' },
-      { id: 'c', type: 'neutral', label: 'Suspend every procurement and maintenance decision involving Dynamics 365 until the normal system is restored, even if a verified and appropriately authorised alternative exists.' },
+      { id: 'c', type: 'wrong', label: 'Suspend every procurement and maintenance decision involving Dynamics 365 until the normal system is restored, even if a verified and appropriately authorised alternative exists.' },
       { id: 'd', type: 'wrong', label: 'Keep procurement procedures unchanged and rely solely on the vendor’s contractual restoration commitments until the service returns.' },
     ],
     facilitatorNotes: 'Allow only a controlled, authorised workaround with safeguards and a clear reconciliation process.',
@@ -342,7 +342,7 @@ const mimosaManagementInjects: Inject[] = [
     evidence: 'Microsoft reports service restoration; ICT can sign in; transaction backlog remains; Finance is concerned about duplicates; Maintenance must reconcile manual records.',
     choices: [
       { id: 'a', type: 'wrong', label: 'Resume all normal workflows once Microsoft announces restoration; ask ICT to check system performance during the next shift.' },
-      { id: 'b', type: 'neutral', label: 'Resume operations as soon as ICT can sign in and complete a sample transaction, leaving each department to address outstanding records at its discretion.' },
+      { id: 'b', type: 'wrong', label: 'Resume operations as soon as ICT can sign in and complete a sample transaction, leaving each department to address outstanding records at its discretion.' },
       { id: 'c', type: 'correct', label: 'Require ICT technical assurance and affected business-owner validation, control outstanding transactions, and then resume under the appropriate recovery authority; confirm service restoration before closure and initiate an incident review.' },
       { id: 'd', type: 'wrong', label: 'Keep every affected activity suspended until the full transaction backlog is reconciled and Microsoft has published a final root-cause report.' },
     ],
