@@ -109,12 +109,13 @@ export default function ParticipantPage() {
               <div className="rounded-xl border border-border/70 bg-muted/40 p-3 sm:p-5">
                 <p className="mb-3 text-sm font-semibold">What does the team do?</p>
                 <div className="space-y-2">
-                  {activeInject.choices.map((choice) => {
+                  {activeInject.choices.map((choice, index) => {
                     const isSelected = selectedChoiceId === choice.id
                     const isExisting = hasExistingResponse && existingChoice?.id === choice.id
                     const isCorrect = choice.type === 'correct'
                     const isNeutral = choice.type === 'neutral'
                     const isWrong = choice.type === 'wrong'
+                    const choiceLetter = String.fromCharCode(65 + index)
 
                     let buttonClass =
                       'border-border/70 bg-card text-foreground hover:border-primary/60 hover:bg-primary/5'
@@ -134,8 +135,14 @@ export default function ParticipantPage() {
                         disabled={submitting || submitted || hasExistingResponse}
                         onClick={() => setSelectedChoiceId(choice.id)}
                         aria-pressed={isSelected}
-                        className={`flex min-h-14 w-full items-center justify-between gap-3 rounded-lg border px-3 py-4 text-left text-[15px] font-medium leading-relaxed transition disabled:cursor-not-allowed sm:px-4 sm:py-3 sm:text-sm ${buttonClass}`}
+                        className={`flex min-h-14 w-full items-center gap-3 rounded-lg border px-3 py-4 text-left text-[15px] font-medium leading-relaxed transition disabled:cursor-not-allowed sm:px-4 sm:py-3 sm:text-sm ${buttonClass}`}
                       >
+                        <span
+                          aria-hidden="true"
+                          className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-sm font-bold text-primary"
+                        >
+                          {choiceLetter}
+                        </span>
                         <span className="min-w-0 flex-1 text-justify">{choice.label}</span>
                         {(submitted || hasExistingResponse) && isExisting && resultConfig?.icon}
                       </button>

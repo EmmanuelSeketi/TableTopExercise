@@ -14,6 +14,7 @@ export type RoleId =
   | 'observer'
   | 'ict-manager'
   | 'ict-officer'
+  | 'custom'
   | 'network-telecommunications'
   | 'engineering-electrical'
   | 'mine-control'

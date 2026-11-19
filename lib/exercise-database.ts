@@ -280,7 +280,7 @@ export async function patchExerciseState(
 
 export async function joinExercise(
   instanceId: string,
-  input: Pick<Participant, 'deviceId' | 'name' | 'roleId'>
+  input: Pick<Participant, 'deviceId' | 'name' | 'roleId' | 'customRole'>
 ): Promise<{ participant: Participant; totalParticipants: number }> {
   await ensureExerciseStorage()
   return transaction(async (client) => {

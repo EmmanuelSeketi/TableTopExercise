@@ -80,7 +80,7 @@ export default function ModeratePage() {
           return {
             ...response,
             name: participant?.name ?? 'Registration unavailable',
-            role: roles.find((item) => item.id === participant?.roleId)?.title ?? 'Role unavailable',
+            role: participant?.customRole ?? roles.find((item) => item.id === participant?.roleId)?.title ?? 'Role unavailable',
             choiceLabel: choice?.label ?? 'Choice no longer available',
           }
         }),

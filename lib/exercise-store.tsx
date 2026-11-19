@@ -28,6 +28,7 @@ export interface Participant {
   deviceId: string
   name: string
   roleId: RoleId
+  customRole?: string
 }
 
 export interface Settings {

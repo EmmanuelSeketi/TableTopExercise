@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import { joinExercise } from '@/lib/exercise-database'
+import type { RoleId } from '@/lib/exercise-data'
 import { getExerciseDefinition, getExerciseIdFromUrl } from '@/lib/exercise-instances'
 import {
   createParticipantSession,
@@ -24,6 +25,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Request body must be valid JSON' }, { status: 400 })
   }
 
+  const customRole = (
+    typeof body === 'object' &&
+    body !== null &&
+    'customRole' in body &&
+    typeof body.customRole === 'string'
+  ) ? body.customRole.trim() : ''
+
   if (
     typeof body !== 'object' ||
     body === null ||
@@ -33,9 +41,11 @@ export async function POST(request: Request) {
     body.name.trim().length > 100 ||
     !body.name.trim() ||
     typeof body.roleId !== 'string' ||
-    !roles.some((role) => role.id === body.roleId)
+    (body.roleId === 'custom'
+      ? customRole.length === 0 || customRole.length > 80
+      : !roles.some((role) => role.id === body.roleId))
   ) {
-    return NextResponse.json({ error: 'A valid name and role are required' }, { status: 400 })
+    return NextResponse.json({ error: 'A valid name and role are required. Custom roles must be 1 to 80 characters.' }, { status: 400 })
   }
 
   try {
@@ -43,7 +53,8 @@ export async function POST(request: Request) {
     const result = await joinExercise(instanceId, {
       deviceId,
       name: body.name.trim(),
-      roleId: body.roleId as (typeof roles)[number]['id'],
+      roleId: body.roleId as RoleId,
+      ...(body.roleId === 'custom' ? { customRole } : {}),
     })
     const response = NextResponse.json({ success: true, participant: result.participant })
     response.cookies.set(

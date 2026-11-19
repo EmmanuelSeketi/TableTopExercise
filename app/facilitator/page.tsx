@@ -37,10 +37,33 @@ export default function FacilitatorPage() {
 
   const roleCounts = useMemo(() => {
     return state.participants.reduce<Record<string, number>>((acc, participant) => {
-      acc[participant.roleId] = (acc[participant.roleId] ?? 0) + 1
+      const roleKey = participant.roleId === 'custom' && participant.customRole
+        ? `custom:${participant.customRole}`
+        : participant.roleId
+      acc[roleKey] = (acc[roleKey] ?? 0) + 1
       return acc
     }, {})
   }, [state.participants])
+
+  const displayedRoles = useMemo(() => {
+    const standardRoles = roles.map((role) => ({
+      id: role.id,
+      title: role.title,
+      count: roleCounts[role.id] ?? 0,
+    }))
+    const customRoleTitles = Array.from(new Set(
+      state.participants
+        .map((participant) => participant.roleId === 'custom' ? participant.customRole?.trim() : undefined)
+        .filter((title): title is string => Boolean(title)),
+    ))
+    const customRoles = customRoleTitles.map((title) => ({
+      id: `custom:${title}`,
+      title,
+      count: roleCounts[`custom:${title}`] ?? 0,
+    }))
+
+    return [...standardRoles, ...customRoles]
+  }, [roles, roleCounts, state.participants])
 
   const maxRoleCount = useMemo(() => {
     return Math.max(...Object.values(roleCounts), 1)
@@ -106,8 +129,8 @@ export default function FacilitatorPage() {
             <ParticipantRoster participants={state.participants} id="facilitator-participants" />
             <div className="rounded-xl border border-border/70 bg-muted/40 p-4">
               <div className="space-y-3">
-                {roles.map((role, index) => {
-                  const count = roleCounts[role.id] ?? 0
+                {displayedRoles.map((role, index) => {
+                  const count = role.count
                   const widthPct = maxRoleCount > 0 ? (count / maxRoleCount) * 100 : 0
                   const color = ROLE_CHART_COLORS[index % ROLE_CHART_COLORS.length]
                   return (

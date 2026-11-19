@@ -53,7 +53,7 @@ export function ParticipantRoster({ participants, id }: ParticipantRosterProps) 
               >
                 <span className="font-medium text-foreground">{participant.name}</span>
                 <span className="text-sm text-muted-foreground">
-                  {roles.find((role) => role.id === participant.roleId)?.title ?? 'Role unavailable'}
+                  {participant.customRole ?? roles.find((role) => role.id === participant.roleId)?.title ?? 'Role unavailable'}
                 </span>
               </li>
             ))}

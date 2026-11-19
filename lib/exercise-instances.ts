@@ -418,7 +418,14 @@ By 08:15 AM, the ICT Helpdesk has received multiple related reports. The ICT Man
       audience: 'Management Team',
       scenario: {
         title: 'Microsoft Dynamics 365 disruption',
-        initialSituation: 'It is a busy Friday morning at Mimosa Mine. Mining and processing are underway, maintenance teams are coordinating equipment availability, and Supply Chain and Finance are processing routine operational requirements. At approximately 08:00, the ICT Helpdesk receives reports from several departments that Microsoft Dynamics 365 is unavailable. Procurement transactions cannot be processed, maintenance records cannot be updated, and some payment processing is affected. Initial checks suggest Mimosa’s internal network is functioning normally. Microsoft reports a wider service disruption but provides no estimated restoration time. By 08:30, departmental managers are demanding answers, and ICT cannot confirm whether service will return within the next hour or remain unavailable much longer. The ICT Manager escalates the situation to management. The mine is still operating, but critical business processes are beginning to experience disruption.',
+        initialSituation: `It is a busy Friday morning at Mimosa Mine. Mining and processing activities are underway, maintenance teams are coordinating equipment availability, and the Supply Chain and Finance departments are processing routine operational requirements.
+At approximately 08:00 AM, the ICT Helpdesk begins receiving multiple calls from different departments reporting difficulties accessing Microsoft Dynamics 365.
+Within minutes, the situation becomes increasingly concerning.
+Tendai Moyo from the Supply Chain department reports that procurement transactions cannot be processed, while Rudo Ndlovu from the Plant and Maintenance team reports that they are unable to update maintenance records and process certain equipment-related transactions. Sydney Chikore from Finance also reports difficulties completing payment processing activities.
+The ICT team begins investigating. Initial checks suggest that Mimosa’s internal network is functioning normally, but the affected Dynamics 365 services remain unavailable.
+Shortly afterwards, Microsoft issues a service notification indicating a wider service disruption. However, no estimated restoration time has been provided.
+By 08:30 AM, the disruption has persisted for 30 minutes. Departmental managers are demanding answers, and ICT cannot confirm whether the system will be restored within the next hour or remain unavailable for much longer.
+The ICT Manager escalates the situation to management.`,
       },
       injects: mimosaManagementInjects,
       roles: mimosaManagementRoles,
