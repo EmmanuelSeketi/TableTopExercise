@@ -101,7 +101,7 @@ export default function ModeratePage() {
   const discussionPoints = activeInject?.discussionPoints ?? []
 
   return (
-    <div className="mx-auto w-full max-w-[90rem] space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+    <div className="mx-auto w-full max-w-[90rem] space-y-6 px-4 pb-6 pt-2 sm:px-6 sm:pb-8 sm:pt-4 lg:px-8">
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <Card>
           <CardContent className="space-y-4 p-5">

@@ -2,11 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useExerciseDefinition } from '@/lib/exercise-selection'
 
 export default function ProjectedPage() {
   const [signupUrl, setSignupUrl] = useState('')
-  const definition = useExerciseDefinition()
 
   useEffect(() => {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '')
@@ -27,10 +25,6 @@ export default function ProjectedPage() {
           <CardTitle className="text-center text-2xl text-primary sm:text-3xl">Scan to join the exercise</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center gap-5 p-6 text-center sm:p-8">
-          <div>
-            <p className="font-semibold">{definition.organization} · {definition.audience}</p>
-            <p className="text-sm text-muted-foreground">{definition.scenario.title}</p>
-          </div>
           {qrCodeUrl ? (
             <img
               src={qrCodeUrl}

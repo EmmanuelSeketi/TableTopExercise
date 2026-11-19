@@ -44,7 +44,6 @@ export function ExerciseSessionFlow({ definition }: ExerciseOverviewProps) {
     <section className="space-y-4" aria-labelledby="session-flow-heading">
       <header className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Exercise plan</p>
           <h1 id="session-flow-heading" className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             Session flow
           </h1>
@@ -81,7 +80,6 @@ export function ExerciseClosing({ definition }: ExerciseOverviewProps) {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Final exercise step</p>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Closing debrief</h1>
         <p className="text-sm text-muted-foreground">
           {definition.organization} · {definition.audience}
