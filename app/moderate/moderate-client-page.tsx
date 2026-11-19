@@ -176,7 +176,7 @@ export default function ModeratePage() {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              {responsesByOutcome.filter((group) => group.type !== 'wrong').map((group) => {
+              {responsesByOutcome.filter((group) => group.type !== 'neutral').map((group) => {
                 const Icon = group.icon
                 const isSelected = selectedOutcome === group.type
                 return (
