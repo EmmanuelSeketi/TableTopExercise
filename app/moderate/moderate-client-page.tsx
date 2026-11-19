@@ -175,8 +175,8 @@ export default function ModeratePage() {
               <Badge variant="secondary">{injectResponseCount}</Badge>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              {responsesByOutcome.map((group) => {
+            <div className="grid grid-cols-2 gap-2">
+              {responsesByOutcome.filter((group) => group.type !== 'wrong').map((group) => {
                 const Icon = group.icon
                 const isSelected = selectedOutcome === group.type
                 return (
