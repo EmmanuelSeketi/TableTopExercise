@@ -36,6 +36,7 @@ export const EXERCISE_IDS = {
   meridian: 'meridian',
   mimosaTechnical: 'mimosa-technical',
   mimosaManagement: 'mimosa-management',
+  zechl: 'zechl',
 } as const
 
 const mimosaRoles: Role[] = [
@@ -213,6 +214,190 @@ const mimosaTimeline: TimelineEvent[] = mimosaInjects.map((inject, index) => ({
   injectId: inject.id,
 }))
 
+const zechlRoles: Role[] = [
+  {
+    id: 'ict-manager',
+    title: 'ICT / IRT Leadership',
+    summary: 'Coordinates incident response, technical containment and recovery decisions.',
+    responsibilities: ['Coordinate incident triage and escalation.', 'Advise on access restrictions and isolation.', 'Present recovery options and residual risk.'],
+    decisionAuthority: 'Directs ICT actions and escalates payment-service or executive decisions through the IRT.',
+    expectedActions: ['Preserve evidence.', 'Contain the affected access.', 'Coordinate technical sign-off and status updates.'],
+  },
+  {
+    id: 'security',
+    title: 'Information Security',
+    summary: 'Owns security investigation, incident classification and containment advice.',
+    responsibilities: ['Assess compromise scope.', 'Preserve authentication and configuration evidence.', 'Advise on access containment and incident severity.'],
+    decisionAuthority: 'Leads the security investigation and directs proportionate security containment.',
+    expectedActions: ['Confirm Level 3 status.', 'Investigate additional access paths.', 'Specify evidence and rollback conditions.'],
+  },
+  {
+    id: 'network-telecommunications',
+    title: 'Payment Operations',
+    summary: 'Protects payment availability, transaction integrity and interbank coordination.',
+    responsibilities: ['Monitor National Financial Switch throughput.', 'Identify affected transactions and reconciliation cases.', 'Advise on payment restrictions and restoration.'],
+    decisionAuthority: 'Recommends payment-flow restrictions and controlled restoration through authorised management.',
+    expectedActions: ['Ring-fence disputed transactions.', 'Prevent unverified retries or reversals.', 'Coordinate bank updates and recovery checks.'],
+  },
+  {
+    id: 'bcms',
+    title: 'IRT Team Leader',
+    summary: 'Coordinates the Incident Response Team and resolves response priorities.',
+    responsibilities: ['Coordinate technical and management workstreams.', 'Record decisions and authority.', 'Apply stand-down and debrief criteria.'],
+    decisionAuthority: 'Leads the IRT and is responsible for any formal IRT stand-down decision.',
+    expectedActions: ['Set decision checkpoints.', 'Resolve conflicting operational and security priorities.', 'Document the risk accepted and the review point.'],
+  },
+  {
+    id: 'general-manager',
+    title: 'CEO / Executive Representative',
+    summary: 'Accepts or rejects senior management decisions on continuity and risk.',
+    responsibilities: ['Confirm executive authority and risk acceptance.', 'Set continuity priorities.', 'Approve authorised external messaging.'],
+    decisionAuthority: 'Makes or delegates executive decisions within established authority.',
+    expectedActions: ['Select a defensible service restriction.', 'Record assumptions and review time.', 'Ensure senior decisions are communicated.'],
+  },
+  {
+    id: 'finance',
+    title: 'Finance / Risk',
+    summary: 'Assesses financial exposure and transaction reconciliation risk.',
+    responsibilities: ['Identify affected financial outcomes.', 'Protect reconciliation and settlement records.', 'Assess residual operational risk.'],
+    decisionAuthority: 'Provides financial and risk advice and confirms exceptions that require control.',
+    expectedActions: ['Assess disputed transaction exposure.', 'Define reconciliation controls.', 'Track unresolved exceptions.'],
+  },
+  {
+    id: 'comms-officer',
+    title: 'Communications / Legal',
+    summary: 'Controls factual stakeholder updates and checks notification obligations.',
+    responsibilities: ['Coordinate bank and regulatory communications.', 'Distinguish confirmed facts from uncertainty.', 'Identify applicable notification triggers.'],
+    decisionAuthority: 'Approves or recommends external messages within assigned authority.',
+    expectedActions: ['Issue authorised factual updates.', 'Maintain a clear uncertainty register.', 'Coordinate notification decisions.'],
+  },
+]
+
+const zechlInjects: Inject[] = [
+  {
+    id: 'zechl-1',
+    order: 1,
+    time: '09:15',
+    phase: 'Identification, reporting and triage',
+    nist: 'Identify & Respond',
+    title: 'The login that looks like maintenance',
+    decisionPrompt: 'What is the best first decision while the privileged session is still active?',
+    description: `It is 09:15. A privileged administrator account connects to a component supporting the National Financial Switch through a familiar remote-access gateway, but from an unfamiliar device. Three unsuccessful sign-in attempts immediately preceded the successful login. The session has opened a sensitive configuration screen.
+
+ICT finds a maintenance ticket, but it covers only a standby environment and ended at 07:00. The account owner is temporarily unreachable. Payment Operations reports normal transaction processing, while the monitoring team notes that the session remains active.
+
+The team must choose an immediate response before it knows whether this is an emergency change, a compromised account or a false alarm.`,
+    evidence: 'The active session remains on the privileged account. The maintenance ticket covers a standby environment, the account owner is unreachable and normal transaction processing is reported.',
+    choices: [
+      { id: 'a', type: 'wrong', label: 'Notify Information Security immediately, preserve logs, verify the maintenance ticket and keep the active session under close monitoring until the administrator confirms it was authorised.' },
+      { id: 'b', type: 'wrong', label: 'Have ICT verify the maintenance ticket and contact the administrator before reporting to Information Security, to avoid escalating an event that may be authorised.' },
+      { id: 'c', type: 'correct', label: 'Notify Information Security immediately, preserve logs, verify the maintenance ticket and have Information Security direct a targeted restriction on the active privileged session.' },
+      { id: 'd', type: 'wrong', label: 'Notify Information Security and immediately disconnect the entire switching component to eliminate any possible risk before establishing which asset is affected.' },
+    ],
+    facilitatorNotes: 'Correct answer: C. Report immediately and preserve evidence while directing a proportionate restriction of the active session. Explain why close monitoring leaves a live session active and why a whole-component shutdown may be disproportionate.',
+    hint: 'Separate immediate reporting and evidence preservation from the authority needed to restrict a live privileged session.',
+    discussionPoints: [
+      { role: 'Information Security', prompt: 'What is already sufficient to trigger immediate reporting, and what evidence must be preserved?' },
+      { role: 'ICT', prompt: 'Which change records, account-owner confirmations and authentication indicators would establish legitimacy?' },
+      { role: 'IRT Leadership / Payment Operations', prompt: 'Who may authorise restricting an active privileged session before the full incident scope is known?' },
+    ],
+  },
+  {
+    id: 'zechl-2',
+    order: 2,
+    time: '09:45',
+    phase: 'Classification, escalation and containment',
+    nist: 'Contain',
+    title: 'A confirmed compromise with no easy containment choice',
+    decisionPrompt: 'Which response best meets ZECHL’s Level 3 obligations while handling the continuity conflict?',
+    description: `At 09:45 the legitimate administrator confirms that the login was not theirs. The earlier production routing change was not authorised. Information Security finds an unusual authentication approval involving the account but has not confirmed the initial entry point or whether another privileged account is exposed.
+
+The suspect session is still being investigated. ICT recommends taking the affected switching component off the network. Payment Operations warns that a full disconnect could interrupt multiple financial institutions, while an access-only restriction may not fully remove an attacker who has established another session.
+
+The Incident Response Team Leader is asked for a decision that can be executed immediately and defended afterward.`,
+    evidence: 'The login and production routing change are unauthorised. The suspect session and other possible access paths remain unresolved.',
+    choices: [
+      { id: 'a', type: 'wrong', label: 'Declare Level 3, disconnect every National Financial Switch component immediately and notify banks of a complete outage before determining the actual extent of compromise.' },
+      { id: 'b', type: 'correct', label: 'Declare Level 3, preserve evidence, contain the known session and assess other access paths under Information Security oversight, with IRT-led coordination of any payment restriction.' },
+      { id: 'c', type: 'wrong', label: 'Keep the incident under investigation until the attacker’s entry method is confirmed; then declare the severity and decide on containment with Information Security.' },
+      { id: 'd', type: 'wrong', label: 'Declare Level 3, preserve evidence, disable the known compromised account and reverse the unauthorised setting, then continue processing under enhanced monitoring.' },
+    ],
+    facilitatorNotes: 'Correct answer: B. Classify immediately, contain the known session and investigate other access paths. Do not assume that removing one account or reversing a setting eliminates the threat.',
+    hint: 'A confirmed compromise to a critical system requires prompt classification and containment without premature assumptions.',
+    discussionPoints: [
+      { role: 'Information Security', prompt: 'Why is this Level 3, and which containment methods would stop the threat?' },
+      { role: 'ICT / Payment Operations', prompt: 'What evidence justifies targeted restriction versus full isolation of the payment component?' },
+      { role: 'IRT Team Leader / Senior Management', prompt: 'Who resolves disagreement about stopping payment services, and how is the decision recorded?' },
+    ],
+  },
+  {
+    id: 'zechl-3',
+    order: 3,
+    time: '10:30',
+    phase: 'Management decision: payment integrity and continuity',
+    nist: 'Recover & Communicate',
+    title: 'Bank pressure becomes a management decision',
+    decisionPrompt: 'As the executive decision-maker, which instruction is most defensible now?',
+    description: `At 10:30, two participating banks report ATM and POS failures. One reports that some customers have been debited despite unsuccessful terminal messages. Switching records and bank reports do not match for a subset of transactions. The effect on downstream reconciliation and settlement is not yet known.
+
+Bank A asks ZECHL to permit an immediate replay of failed transactions. Bank B warns that doing so could duplicate debits. A senior executive at Bank A contacts ZECHL’s CEO, warning that customer complaints are increasing and requesting a definitive restoration time.
+
+Information Security advises that the known compromised account is restricted, but the effect of the unauthorised routing change is unresolved. The IRT Team Leader must recommend a decision to senior management on service restrictions, communication and risk acceptance.`,
+    evidence: 'ATM and POS failures are reported. Some customers may be debited despite unsuccessful terminal messages, while switching and bank records do not match.',
+    choices: [
+      { id: 'a', type: 'wrong', label: 'Suspend all switching activity until complete root-cause and financial-impact findings are available; communicate only after those findings are approved.' },
+      { id: 'b', type: 'wrong', label: 'Restrict affected payment flows, pause unverified retries, reconcile exceptions and issue factual updates; allow retries once each bank confirms its own failed status.' },
+      { id: 'c', type: 'wrong', label: 'Continue unaffected switching traffic and let each bank manage retry and reversal decisions while ZECHL investigates the configuration change.' },
+      { id: 'd', type: 'correct', label: 'Restrict affected payment flows, hold retries until end-to-end status is verified under an approved process, reconcile exceptions, and issue authorised updates with a timed management review.' },
+    ],
+    facilitatorNotes: 'Correct answer: D. A bank’s local failed-status report does not prove end-to-end transaction status. Protect reconciliation, control retries and set a management review checkpoint.',
+    hint: 'Do not allow individual bank reports to override uncertainty across the switch and downstream systems.',
+    discussionPoints: [
+      { role: 'CEO / Executive Representative', prompt: 'What options, affected scope, risks and review point should the IRT present before accepting continuity risk?' },
+      { role: 'Head of Operations / Finance', prompt: 'How will uncertain transactions be identified and how will duplicate debits or incorrect reversals be prevented?' },
+      { role: 'Communications / Risk / Legal', prompt: 'Who approves bank and regulatory messages, what is known, and which notification obligations must be checked?' },
+    ],
+  },
+  {
+    id: 'zechl-4',
+    order: 4,
+    time: '12:00',
+    phase: 'Management decision: restoration and stand-down',
+    nist: 'Recover & Close',
+    title: 'The service looks healthy; the decision does not',
+    decisionPrompt: 'What should management require before a restricted restart and a possible IRT stand-down?',
+    description: `At 12:00, the known unauthorised session has been terminated and a trusted routing configuration passes controlled technical checks. The team proposes a restricted pilot involving a small transaction stream. However, a second privileged account has not been fully cleared and an exception queue still contains disputed transaction records.
+
+The Head of Operations argues that a limited pilot will demonstrate progress to the banks. Information Security warns against treating technical health indicators as proof of system trust. The CEO wants to know who can authorise a pilot, what controls would make it safe, and whether the formal Incident Response Team can now stand down.
+
+The group must separate the return-to-service decision from formal incident closure. The BCP permits the IRT to stand down before every recovery activity ends, but only when its stated conditions are met.`,
+    evidence: 'The known session is terminated and the routing configuration passes controlled checks. A second privileged account remains uncleared and disputed transaction records remain queued.',
+    choices: [
+      { id: 'a', type: 'wrong', label: 'Authorise a narrow pilot using the tested configuration, hold disputed transactions, assign a sign-off owner and rollback trigger; investigate the uncleared second privileged account during the pilot.' },
+      { id: 'b', type: 'wrong', label: 'Keep all processing suspended until the final forensic report is signed and every disputed transaction is settled.' },
+      { id: 'c', type: 'correct', label: 'Authorise a defined pilot only after the second-account risk is contained or demonstrably mitigated; verify transaction controls, sign-off and rollback, then assess IRT stand-down separately.' },
+      { id: 'd', type: 'wrong', label: 'Let ICT start a narrow pilot under continuous monitoring and ask the CEO to stand down the IRT when the first participating bank confirms successful processing.' },
+    ],
+    facilitatorNotes: 'Correct answer: C. A pilot requires mitigation of unresolved access risk, tested transaction controls, explicit authorisation and rollback. The IRT Team Leader, not the CEO, applies stand-down criteria.',
+    hint: 'Separate technical and operational restoration from incident closure and formal IRT stand-down.',
+    discussionPoints: [
+      { role: 'CEO / IRT Team Leader', prompt: 'What evidence justifies residual-risk acceptance, who signs off pilot traffic and who may stand down the IRT?' },
+      { role: 'Information Security / ICT', prompt: 'What proves access is contained and the configuration trustworthy enough for a pilot, and what forces rollback?' },
+      { role: 'Payment Operations / Risk', prompt: 'Which transaction checks must pass before the pilot and what remains open after partial restoration?' },
+    ],
+  },
+]
+
+const zechlTimeline: TimelineEvent[] = zechlInjects.map((inject, index) => ({
+  id: `zechl-t${index + 1}`,
+  time: ['05:00', '15:00', '30:00', '42:00'][index],
+  minute: [5, 15, 30, 42][index],
+  phase: inject.phase,
+  title: inject.title,
+  detail: inject.description,
+  injectId: inject.id,
+}))
+
 const mimosaManagementRoles: Role[] = [
   {
     id: 'general-manager', title: 'General Manager / Managing Director',
@@ -370,9 +555,40 @@ export const EXERCISE_CHOICES = [
   { id: EXERCISE_IDS.meridian, organization: EXERCISE_META.defaultOrg, audience: 'Management & technical', available: true },
   { id: EXERCISE_IDS.mimosaTechnical, organization: 'Mimosa Mine', audience: 'Technical team', available: true },
   { id: EXERCISE_IDS.mimosaManagement, organization: 'Mimosa Mine', audience: 'Management team', available: true },
+  { id: EXERCISE_IDS.zechl, organization: 'Zambia Electronic Clearing House Limited (ZECHL)', audience: 'Management & technical', available: true },
 ] as const
 
 export function getExerciseDefinition(id: string): ExerciseDefinition {
+  if (id === EXERCISE_IDS.zechl) {
+    return {
+      id,
+      title: 'ZECHL: Privileged Account Compromise and Payment System Manipulation',
+      organization: 'Zambia Electronic Clearing House Limited (ZECHL)',
+      durationMinutes: 90,
+      audience: 'Management & Technical',
+      scenario: {
+        title: 'Critical Payment Infrastructure: Privileged Account Compromise',
+        initialSituation: `It is a busy weekday morning at Zambia Electronic Clearing House Limited. Participating financial institutions are processing ATM and POS transactions through the National Financial Switch. Payment Operations is monitoring transaction throughput and ICT teams are completing routine support work.
+Earlier that morning, a maintenance window had been approved for a standby environment. It ended at 07:00 and did not authorise changes to production switching configurations. At 09:15, the security monitoring function detects a privileged administrator login coming through a recognised remote-access gateway, but from a device not previously associated with the account.
+An analyst, Daniel Mwansa (fictional), notices that several unsuccessful login attempts preceded the connection and that the privileged session has opened a sensitive configuration screen. Daniel contacts Ruth Phiri (fictional), the ICT support lead. Ruth recalls a maintenance request but cannot reconcile the suspicious activity with the approved scope. The account owner cannot initially be reached, and payment services appear to be normal.
+Information Security then discovers that a production routing-related setting was altered. When contacted, the real administrator denies any involvement. The team now has evidence of unauthorised access, but it cannot yet tell whether the intruder has established a second access path.
+Before the response team can establish the full extent of the incident, two participating banks report transaction failures and contradictory customer-debit outcomes. One demands immediate retries, while another warns this could create duplicate debits. Calls escalate to senior management. The question is no longer only how to remove an attacker: it is how to protect customers and transaction integrity, decide what processing can continue, and communicate responsibly while facts remain incomplete.`,
+      },
+      injects: zechlInjects,
+      roles: zechlRoles,
+      timeline: zechlTimeline,
+      sessionFlow: [
+        { time: '00 to 10 min', activity: 'Opening, rules and case briefing' },
+        { time: '10 to 25 min', activity: 'Stage 1: Initial detection and triage' },
+        { time: '25 to 45 min', activity: 'Stage 2: Confirmed access and containment' },
+        { time: '45 to 65 min', activity: 'Stage 3: Executive decision on disrupted payments' },
+        { time: '65 to 80 min', activity: 'Stage 4: Executive decision on recovery' },
+        { time: '80 to 90 min', activity: 'Debrief and action priorities' },
+      ],
+      exerciseBoundary: 'This is a fictional discussion and decision exercise. It does not involve access to production systems or claims about ZECHL’s actual security posture.',
+    }
+  }
+
   if (id === EXERCISE_IDS.mimosaTechnical) {
     return {
       id,

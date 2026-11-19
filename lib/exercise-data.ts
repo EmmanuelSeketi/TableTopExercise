@@ -54,6 +54,7 @@ export interface Inject {
   title: string
   phase: string
   description: string
+  decisionPrompt?: string
   evidence: string
   choices: {
     id: string

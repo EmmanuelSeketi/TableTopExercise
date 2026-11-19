@@ -111,7 +111,7 @@ export default function ModeratePage() {
                   <Badge variant="success">Active</Badge>
                   <span className="text-lg font-semibold text-foreground">{activeInject.title}</span>
                 </div>
-                <p className="text-justify text-sm leading-relaxed text-muted-foreground">{activeInject.description}</p>
+                <p className="whitespace-pre-line text-justify text-sm leading-relaxed text-muted-foreground">{activeInject.description}</p>
                 <InjectVisual injectId={activeInject.id} title={activeInject.title} />
                 {discussionPoints.length > 0 && (
                   <div className="space-y-3">

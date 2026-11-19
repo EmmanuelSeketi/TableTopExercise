@@ -95,7 +95,7 @@ export default function FacilitatorPage() {
                   <Badge variant="success">Active</Badge>
                   <span className="text-lg font-semibold text-foreground">{activeInject.title}</span>
                 </div>
-                <p className="text-justify text-sm leading-relaxed text-muted-foreground">{activeInject.description}</p>
+                <p className="whitespace-pre-line text-justify text-sm leading-relaxed text-muted-foreground">{activeInject.description}</p>
                 <InjectVisual injectId={activeInject.id} title={activeInject.title} />
                 {activeInject.discussionPoints && (
                   <section className="space-y-2 rounded-xl border border-border/70 bg-muted/30 p-4">

@@ -27,6 +27,14 @@ const exerciseInstances = [
     image: '/Overview Image.jpg',
     imageAlt: 'Aerial view of Mimosa Mine',
   },
+  {
+    id: 'zechl',
+    organization: 'Zambia Electronic Clearing House Limited',
+    audience: 'Management & technical',
+    description: 'Privileged account compromise and payment system manipulation · 90 minutes',
+    image: '/images/ZECHL/Zechl Overview.jpg',
+    imageAlt: 'ZECHL critical payment infrastructure overview',
+  },
 ] as const
 
 export default function Page() {

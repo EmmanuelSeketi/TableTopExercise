@@ -101,13 +101,15 @@ export default function ParticipantPage() {
                   <Badge variant="success">Active</Badge>
                   <span className="text-lg font-semibold text-foreground">{activeInject.title}</span>
                 </div>
-                <p className="text-justify text-sm leading-relaxed text-muted-foreground">{activeInject.description}</p>
+                <p className="whitespace-pre-line text-justify text-sm leading-relaxed text-muted-foreground">{activeInject.description}</p>
               </div>
 
               <InjectVisual injectId={activeInject.id} title={activeInject.title} />
 
               <div className="rounded-xl border border-border/70 bg-muted/40 p-3 sm:p-5">
-                <p className="mb-3 text-sm font-semibold">What does the team do?</p>
+                <p className="mb-3 text-sm font-semibold">
+                  {activeInject.decisionPrompt ?? 'What does the team do?'}
+                </p>
                 <div className="space-y-2">
                   {activeInject.choices.map((choice, index) => {
                     const isSelected = selectedChoiceId === choice.id

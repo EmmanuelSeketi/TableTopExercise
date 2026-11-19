@@ -6,26 +6,62 @@ interface ExerciseOverviewProps {
 }
 
 export function ExerciseOverview({ definition }: ExerciseOverviewProps) {
+  const isZechl = definition.id === 'zechl'
+  const overviewParagraphs = definition.scenario.initialSituation
+    .split(/\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+
   return (
-    <div className="space-y-6">
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Exercise overview</p>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-          {definition.scenario.title}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {definition.organization} · {definition.audience} · {definition.durationMinutes} minutes
-        </p>
-      </header>
+    <div className={isZechl ? 'mx-auto max-w-6xl space-y-5' : 'space-y-6'}>
+      {isZechl ? (
+        <header className="pb-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Exercise overview</p>
+          <h1
+            className="mt-2 w-full text-left text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl"
+          >
+            {definition.scenario.title}
+          </h1>
+        </header>
+      ) : (
+        <header className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Exercise overview</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+            {definition.scenario.title}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {definition.organization} · {definition.audience} · {definition.durationMinutes} minutes
+          </p>
+        </header>
+      )}
 
-      <ExerciseOverviewVisual
-        src={definition.organization === 'Mimosa Mine' ? '/Overview Image.jpg' : '/images/inject0.png'}
-        alt={definition.organization === 'Mimosa Mine' ? 'Aerial view of Mimosa Mine' : 'Illustrative exercise scenario'}
-      />
-
-      <p className="max-w-4xl text-justify text-sm leading-7 text-muted-foreground sm:text-base">
-        {definition.scenario.initialSituation}
-      </p>
+      {isZechl ? (
+        <section
+          className="rounded-2xl border border-border/70 bg-card px-4 py-1 shadow-sm sm:px-5"
+          aria-label="Scenario overview"
+        >
+          {overviewParagraphs.map((paragraph, index) => (
+            <p
+              key={index}
+              className={`text-justify text-[13px] leading-6 text-foreground sm:text-[14px] sm:leading-7 ${
+                index < overviewParagraphs.length - 1 ? 'pb-1' : ''
+              }`}
+            >
+              {paragraph}
+            </p>
+          ))}
+        </section>
+      ) : (
+        <>
+          <ExerciseOverviewVisual
+            src={definition.organization === 'Mimosa Mine' ? '/Overview Image.jpg' : '/images/inject0.png'}
+            alt={definition.organization === 'Mimosa Mine' ? 'Aerial view of Mimosa Mine' : 'Illustrative exercise scenario'}
+          />
+          <p className="max-w-4xl text-justify text-sm leading-7 text-muted-foreground sm:text-base">
+            {definition.scenario.initialSituation}
+          </p>
+        </>
+      )}
 
     </div>
   )
@@ -71,6 +107,7 @@ export function ExerciseSessionFlow({ definition }: ExerciseOverviewProps) {
 }
 
 export function ExerciseClosing({ definition }: ExerciseOverviewProps) {
+  const isZechl = definition.id === 'zechl'
   return (
     <div className="space-y-6">
       <header className="space-y-2">
@@ -79,11 +116,13 @@ export function ExerciseClosing({ definition }: ExerciseOverviewProps) {
           {definition.organization} · {definition.audience}
         </p>
       </header>
-      <ExerciseOverviewVisual
-        src={definition.organization === 'Mimosa Mine' ? '/Overview Image.jpg' : '/images/inject0.png'}
-        alt={definition.organization === 'Mimosa Mine' ? 'Aerial view of Mimosa Mine' : 'Illustrative exercise scenario'}
-      />
-      <section className="space-y-2 rounded-xl border border-border/70 p-4 sm:p-5">
+      {!isZechl && (
+        <ExerciseOverviewVisual
+          src={definition.organization === 'Mimosa Mine' ? '/Overview Image.jpg' : '/images/inject0.png'}
+          alt={definition.organization === 'Mimosa Mine' ? 'Aerial view of Mimosa Mine' : 'Illustrative exercise scenario'}
+        />
+      )}
+      <section className="space-y-3 rounded-2xl border border-border/70 bg-muted/30 p-5 sm:p-6">
         <h2 className="text-lg font-semibold text-foreground">Reflection questions</h2>
         <ul className="list-disc space-y-2 pl-5 text-justify text-sm leading-relaxed text-muted-foreground">
           {definition.closingQuestions?.map((question) => <li key={question}>{question}</li>)}
