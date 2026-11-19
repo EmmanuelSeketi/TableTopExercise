@@ -27,12 +27,6 @@ export function ExerciseOverview({ definition }: ExerciseOverviewProps) {
         {definition.scenario.initialSituation}
       </p>
 
-      {definition.exerciseBoundary && (
-        <aside className="rounded-xl border border-border/70 bg-muted/30 p-4">
-          <h2 className="mb-1 text-sm font-semibold text-foreground">Exercise boundary</h2>
-          <p className="text-justify text-sm leading-relaxed text-muted-foreground">{definition.exerciseBoundary}</p>
-        </aside>
-      )}
     </div>
   )
 }

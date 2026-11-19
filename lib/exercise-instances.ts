@@ -48,6 +48,14 @@ const mimosaRoles: Role[] = [
     expectedActions: ['Set incident priorities.', 'Provide decision-ready status updates.', 'Track the recovery target and unresolved risks.'],
   },
   {
+    id: 'ict-officer',
+    title: 'ICT Officer',
+    summary: 'Supports incident logging, evidence gathering and coordinated ICT checks.',
+    responsibilities: ['Record reports and technical observations.', 'Gather approved monitoring and service information.', 'Keep the incident record and status updates current.'],
+    decisionAuthority: 'Performs checks and actions within assigned responsibilities and approved procedures.',
+    expectedActions: ['Correlate user reports.', 'Preserve relevant incident details.', 'Escalate verified findings and changes in impact.'],
+  },
+  {
     id: 'network-telecommunications',
     title: 'Network & Telecommunications',
     summary: 'Investigates connectivity and voice services while protecting live safety-dependent channels.',
@@ -80,6 +88,14 @@ const mimosaRoles: Role[] = [
     expectedActions: ['Identify required safety controls.', 'Validate fallback coverage.', 'Confirm residual risks are communicated.'],
   },
   {
+    id: 'security',
+    title: 'Security',
+    summary: 'Advises on security implications and protects relevant information during the incident.',
+    responsibilities: ['Assess security concerns related to affected systems.', 'Preserve relevant security observations and records.', 'Coordinate security advice with ICT and site teams.'],
+    decisionAuthority: 'Provides security advice and acts within approved site procedures.',
+    expectedActions: ['Report relevant security indicators.', 'Help protect incident records.', 'Escalate security risks and unresolved concerns.'],
+  },
+  {
     id: 'bcms',
     title: 'BCMS Representative',
     summary: 'Supports continuity escalation and records decisions against recovery objectives.',
@@ -99,7 +115,7 @@ const mimosaInjects: Inject[] = [
       { id: 'a', type: 'wrong', label: 'Begin troubleshooting the suspected network device immediately, and open an incident ticket after the root cause is confirmed.' },
       { id: 'b', type: 'correct', label: 'Log and assess the incident across affected voice and safety-dependent processes; classify its impact and urgency, notify the ICT Manager and control room, and start targeted checks.' },
       { id: 'c', type: 'wrong', label: 'Declare a disaster immediately because the BIA classifies telephony as a critical service.' },
-      { id: 'd', type: 'neutral', label: 'Ask supervisors to use handheld radios while ICT treats the incident as a minor IP-telephone fault until more users complain.' },
+      { id: 'd', type: 'wrong', label: 'Ask supervisors to use handheld radios while ICT treats the incident as a minor IP-telephone fault until more users complain.' },
     ],
     facilitatorNotes: 'Look for a coordinated incident record, impact assessment and parallel technical checks.',
     hint: 'Establish what is affected and what remains available before classifying the response.',
@@ -366,7 +382,11 @@ export function getExerciseDefinition(id: string): ExerciseDefinition {
       audience: 'Technical Team',
       scenario: {
         title: 'Underground communications go silent',
-        initialSituation: 'It is a busy Tuesday morning at Mimosa Mine. The underground shift is underway, the surface control room is coordinating with teams below ground, and planned mining activities depend on reliable communications between working sections and their supervisors. At approximately 08:00 AM, calls to several underground IP telephone extensions begin failing. A shift supervisor confirms that usual voice channels cannot reliably reach the control room. Monitoring shows intermittent connectivity affecting one underground working section, while other parts of the mine still have service. The cause is unknown, and the ICT team must investigate alongside appropriate operational and safety decisions.',
+        initialSituation: `It is a busy Tuesday morning at Mimosa Mine. The underground shift is underway, the surface control room is coordinating with teams below ground, and planned mining activities depend on reliable communications between working sections and their supervisors.
+At approximately 08:00 AM, Tawanda Sibanda in the mine control room reports that calls to several underground IP telephone extensions are failing. The first report is treated as a possible handset issue, but within minutes Rumbidzai Ncube, an underground shift supervisor, confirms that her team also cannot reliably contact the control room using the usual voice channels.
+Nyasha Moyo, a Telecommunications Technician, checks the available monitoring information and notices intermittent connectivity affecting communications to one underground working section. Other parts of the mine still have network and telephone service, and the cause of the disruption has not been established.
+The control room asks whether scheduled work in the affected area can proceed. There is no report of injury or a confirmed loss of gas detection or ventilation control, but ICT has not yet verified that all safety-dependent communications and monitoring arrangements remain available.
+By 08:15 AM, the ICT Helpdesk has received multiple related reports. The ICT Manager asks the Network and Telecommunications teams to determine the scope and urgency of the incident and coordinate with Mining and Safety representatives.`,
       },
       injects: mimosaInjects,
       roles: mimosaRoles,
