@@ -10,14 +10,15 @@ import {
 import { InjectVisual } from '@/components/inject-visual'
 import { getCurrentExerciseStep } from '@/lib/exercise-navigation'
 import { useExercise } from '@/lib/exercise-store'
-import { useExerciseDefinition } from '@/lib/exercise-selection'
+import { useExerciseDefinition, useExerciseSelectionReady } from '@/lib/exercise-selection'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
 export default function ParticipantPage() {
-  const { state, submitResponse } = useExercise()
+  const { state, submitResponse, hydrated } = useExercise()
   const definition = useExerciseDefinition()
+  const selectionReady = useExerciseSelectionReady()
   const activeStep = getCurrentExerciseStep(definition, state.activeInjectId).step
   const activeInject = activeStep.kind === 'inject' ? activeStep.inject : null
   const participantResponses = state.currentParticipantId
@@ -87,6 +88,10 @@ export default function ParticipantPage() {
       }[selectedType ?? existingChoice?.type ?? 'wrong']
     : null
 
+  if (!selectionReady || !hydrated) {
+    return <div role="status" className="p-8 text-center text-sm text-muted-foreground">Loading exercise...</div>
+  }
+
   return (
     <div className="mx-auto w-full max-w-[90rem] space-y-6 px-0 py-4 sm:px-6 sm:py-8 lg:px-8">
       <Card>
@@ -102,9 +107,15 @@ export default function ParticipantPage() {
                   <span className="text-lg font-semibold text-foreground">{activeInject.title}</span>
                 </div>
                 <p className="whitespace-pre-line text-justify text-sm leading-relaxed text-muted-foreground">{activeInject.description}</p>
+                {activeInject.evidence && (
+                  <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Additional information</p>
+                    <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-foreground">{activeInject.evidence}</p>
+                  </div>
+                )}
               </div>
 
-              <InjectVisual injectId={activeInject.id} title={activeInject.title} />
+              <InjectVisual injectId={activeInject.id} title={activeInject.title} imageUrl={activeInject.imageUrl} />
 
               <div className="rounded-xl border border-border/70 bg-muted/40 p-3 sm:p-5">
                 <p className="mb-3 text-sm font-semibold">

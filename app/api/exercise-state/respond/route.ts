@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getExerciseState, submitExerciseResponse } from '@/lib/exercise-database'
 import { getParticipantDeviceId, hasSameOrigin } from '@/lib/exercise-auth'
-import { getExerciseDefinition, getExerciseIdFromUrl } from '@/lib/exercise-instances'
+import { getExerciseIdFromUrl } from '@/lib/exercise-instances'
+import { getExerciseDefinitionById } from '@/lib/exercise-database'
 
 export const runtime = 'nodejs'
 
@@ -36,7 +37,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const inject = getExerciseDefinition(instanceId).injects.find((item) => item.id === body.injectId)
+    const definition = await getExerciseDefinitionById(instanceId)
+    if (!definition) return NextResponse.json({ error: 'Unknown exercise instance' }, { status: 404 })
+    const inject = definition.injects.find((item) => item.id === body.injectId)
     if (!inject?.choices.some((choice) => choice.id === body.choice)) {
       return NextResponse.json({ error: 'The selected inject or answer is invalid' }, { status: 400 })
     }

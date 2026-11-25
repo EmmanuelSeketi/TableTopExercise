@@ -1,6 +1,14 @@
 import { randomUUID } from 'crypto'
 import { Pool, type PoolClient } from 'pg'
-import { getExerciseDefinition } from './exercise-instances'
+import {
+  EXERCISE_CHOICES,
+  getExerciseDefinition,
+  isBuiltInExerciseId,
+  isCustomExerciseId,
+  isManagedExerciseId,
+} from './exercise-instances'
+import type { CustomExerciseDraft } from './custom-exercise-types'
+import type { ExerciseDefinition } from './exercise-instances'
 import type { ExerciseState, Participant, ParticipantResponse } from './exercise-store'
 
 declare global {
@@ -8,6 +16,8 @@ declare global {
 }
 
 let responseStorageReady: Promise<void> | null = null
+
+export class CustomExerciseInputError extends Error {}
 
 function getPool() {
   if (globalThis.exerciseDatabasePool) return globalThis.exerciseDatabasePool
@@ -98,6 +108,23 @@ async function ensureExerciseStorage(): Promise<void> {
         FROM exercise_responses
         ON CONFLICT DO NOTHING
       `)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS custom_exercises (
+          id text PRIMARY KEY,
+          definition jsonb NOT NULL,
+          created_at timestamptz NOT NULL DEFAULT now(),
+          archived_at timestamptz
+        )
+      `)
+      await client.query('ALTER TABLE custom_exercises ADD COLUMN IF NOT EXISTS archived_at timestamptz')
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS custom_exercise_media (
+          id text PRIMARY KEY,
+          exercise_id text NOT NULL REFERENCES custom_exercises(id) ON DELETE CASCADE,
+          content_type text NOT NULL,
+          image_data bytea NOT NULL
+        )
+      `)
       await client.query('COMMIT')
     } catch (error) {
       await client.query('ROLLBACK')
@@ -112,6 +139,261 @@ async function ensureExerciseStorage(): Promise<void> {
     throw error
   })
   return responseStorageReady
+}
+
+function parseExerciseImage(dataUrl: string) {
+  const match = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/.exec(dataUrl)
+  if (!match) throw new CustomExerciseInputError('Images must be JPEG, PNG, or WebP files.')
+  const imageData = Buffer.from(match[2], 'base64')
+  if (imageData.length === 0 || imageData.length > 2 * 1024 * 1024 || imageData.toString('base64') !== match[2]) {
+    throw new CustomExerciseInputError('Each uploaded image must be smaller than 2 MB.')
+  }
+  return { contentType: match[1], imageData }
+}
+
+async function saveExerciseImage(
+  client: PoolClient,
+  exerciseId: string,
+  dataUrl: string | undefined,
+  totalBytes: { value: number },
+) {
+  if (!dataUrl) return undefined
+  const { contentType, imageData } = parseExerciseImage(dataUrl)
+  totalBytes.value += imageData.length
+  if (totalBytes.value > 8 * 1024 * 1024) {
+    throw new CustomExerciseInputError('The combined image uploads must be smaller than 8 MB.')
+  }
+  const mediaId = randomUUID()
+  await client.query(
+    `INSERT INTO custom_exercise_media (id, exercise_id, content_type, image_data)
+     VALUES ($1, $2, $3, $4)`,
+    [mediaId, exerciseId, contentType, imageData],
+  )
+  return `/api/exercises/${exerciseId}/media/${mediaId}`
+}
+
+export async function createCustomExercise(draft: CustomExerciseDraft): Promise<ExerciseDefinition> {
+  await ensureExerciseStorage()
+  const id = `custom-${randomUUID()}`
+  return transaction(async (client) => {
+    await client.query(
+      'INSERT INTO custom_exercises (id, definition) VALUES ($1, $2::jsonb)',
+      [id, JSON.stringify({ id })],
+    )
+    const totalImageBytes = { value: 0 }
+    const organizationImageUrl = await saveExerciseImage(
+      client,
+      id,
+      draft.organizationImageData,
+      totalImageBytes,
+    )
+    const { overviewImageData, ...scenario } = draft.scenario
+    const overviewImageUrl = await saveExerciseImage(
+      client,
+      id,
+      overviewImageData,
+      totalImageBytes,
+    )
+    const injects: ExerciseDefinition['injects'] = []
+    for (const inject of draft.injects) {
+      const { imageData, ...definition } = inject
+      const imageUrl = await saveExerciseImage(client, id, imageData, totalImageBytes)
+      injects.push({ ...definition, ...(imageUrl ? { imageUrl } : {}) })
+    }
+    const definitionFields = { ...draft }
+    delete definitionFields.organizationImageData
+    const definition: ExerciseDefinition = {
+      ...definitionFields,
+      id,
+      ...(organizationImageUrl ? { organizationImageUrl } : {}),
+      scenario: {
+        ...scenario,
+        ...(overviewImageUrl ? { overviewImageUrl } : {}),
+      },
+      injects,
+    }
+
+    await client.query(
+      'UPDATE custom_exercises SET definition = $2::jsonb WHERE id = $1',
+      [id, JSON.stringify(definition)],
+    )
+    return definition
+  })
+}
+
+export async function updateManagedExercise(
+  id: string,
+  draft: CustomExerciseDraft,
+): Promise<ExerciseDefinition | null> {
+  await ensureExerciseStorage()
+  if (!isManagedExerciseId(id)) return null
+
+  return transaction(async (client) => {
+    await client.query("SELECT pg_advisory_xact_lock(hashtext('exercise-admin:' || $1))", [id])
+    const stored = await client.query<{ definition: ExerciseDefinition; archived: boolean }>(
+      'SELECT definition, archived_at IS NOT NULL AS archived FROM custom_exercises WHERE id = $1 FOR UPDATE',
+      [id],
+    )
+    if (stored.rows[0]?.archived) return null
+    const existing = stored.rows[0]?.definition ??
+      (isBuiltInExerciseId(id) ? getExerciseDefinition(id) : null)
+    if (!existing) return null
+    if (!stored.rows[0]) {
+      await client.query(
+        'INSERT INTO custom_exercises (id, definition, archived_at) VALUES ($1, $2::jsonb, NULL)',
+        [id, JSON.stringify({ id })],
+      )
+    }
+
+    const totalImageBytes = { value: 0 }
+    const { organizationImageData, scenario: draftScenario, injects: draftInjects, ...fields } = draft
+    const organizationImageUrl = await saveExerciseImage(client, id, organizationImageData, totalImageBytes)
+    const { overviewImageData, ...scenarioFields } = draftScenario
+    const overviewImageUrl = await saveExerciseImage(client, id, overviewImageData, totalImageBytes)
+    const previousInjects = new Map(existing.injects.map((inject) => [inject.id, inject]))
+    const injects: ExerciseDefinition['injects'] = []
+
+    for (const inject of draftInjects) {
+      const { imageData, ...injectFields } = inject
+      const imageUrl = await saveExerciseImage(client, id, imageData, totalImageBytes)
+      const previousImageUrl = previousInjects.get(inject.id)?.imageUrl
+      injects.push({
+        ...previousInjects.get(inject.id),
+        ...injectFields,
+        ...((imageUrl ?? previousImageUrl) ? { imageUrl: imageUrl ?? previousImageUrl } : {}),
+      })
+    }
+
+    const definition: ExerciseDefinition = {
+      ...existing,
+      ...fields,
+      id,
+      ...(organizationImageUrl
+        ? { organizationImageUrl }
+        : existing.organizationImageUrl
+          ? { organizationImageUrl: existing.organizationImageUrl }
+          : {}),
+      scenario: {
+        ...existing.scenario,
+        ...scenarioFields,
+        ...(overviewImageUrl
+          ? { overviewImageUrl }
+          : existing.scenario.overviewImageUrl
+            ? { overviewImageUrl: existing.scenario.overviewImageUrl }
+            : {}),
+      },
+      injects,
+    }
+    await client.query(
+      `INSERT INTO custom_exercises (id, definition, archived_at)
+       VALUES ($1, $2::jsonb, NULL)
+       ON CONFLICT (id) DO UPDATE SET definition = EXCLUDED.definition`,
+      [id, JSON.stringify(definition)],
+    )
+    await client.query(
+      `UPDATE exercise_instance_states
+       SET state = jsonb_set(
+         jsonb_set(
+           jsonb_set(state, '{settings,title}', to_jsonb($2::text), true),
+           '{settings,organization}', to_jsonb($3::text), true
+         ),
+         '{settings,durationMinutes}', to_jsonb($4::integer), true
+       ),
+       version = version + 1,
+       updated_at = now()
+       WHERE instance_id = $1`,
+      [id, definition.title, definition.organization, definition.durationMinutes],
+    )
+    return definition
+  })
+}
+
+export async function archiveManagedExercise(id: string): Promise<boolean> {
+  await ensureExerciseStorage()
+  if (!isManagedExerciseId(id)) return false
+
+  return transaction(async (client) => {
+    await client.query("SELECT pg_advisory_xact_lock(hashtext('exercise-admin:' || $1))", [id])
+    const stored = await client.query<{ definition: ExerciseDefinition; archived: boolean }>(
+      'SELECT definition, archived_at IS NOT NULL AS archived FROM custom_exercises WHERE id = $1 FOR UPDATE',
+      [id],
+    )
+    if (stored.rows[0]?.archived) return true
+    const definition = stored.rows[0]?.definition ??
+      (isBuiltInExerciseId(id) ? getExerciseDefinition(id) : null)
+    if (!definition) return false
+
+    await client.query(
+      `INSERT INTO custom_exercises (id, definition, archived_at)
+       VALUES ($1, $2::jsonb, now())
+       ON CONFLICT (id) DO UPDATE SET archived_at = now()`,
+      [id, JSON.stringify(definition)],
+    )
+    return true
+  })
+}
+
+export async function getCustomExerciseDefinition(id: string): Promise<ExerciseDefinition | null> {
+  await ensureExerciseStorage()
+  const result = await getPool().query<{ definition: ExerciseDefinition }>(
+    'SELECT definition FROM custom_exercises WHERE id = $1',
+    [id],
+  )
+  return result.rows[0]?.definition ?? null
+}
+
+export async function getExerciseDefinitionById(id: string): Promise<ExerciseDefinition | null> {
+  const storedDefinition = await getCustomExerciseDefinition(id)
+  if (storedDefinition) return storedDefinition
+  if (EXERCISE_CHOICES.some((choice) => choice.id === id && choice.available)) {
+    return getExerciseDefinition(id)
+  }
+  return null
+}
+
+export async function listExerciseCatalog() {
+  await ensureExerciseStorage()
+  const result = await getPool().query<{ definition: ExerciseDefinition; archived: boolean }>(
+    'SELECT definition, archived_at IS NOT NULL AS archived FROM custom_exercises ORDER BY created_at DESC',
+  )
+  const customExercises = result.rows
+    .filter(({ definition, archived }) => !archived && isCustomExerciseId(definition.id))
+    .map(({ definition }) => ({
+      id: definition.id,
+      organization: definition.organization,
+      organizationImageUrl: definition.organizationImageUrl,
+      title: definition.title,
+      audience: definition.audience,
+      durationMinutes: definition.durationMinutes,
+      overviewTitle: definition.scenario.title,
+    }))
+  const builtInOverrides = result.rows
+    .filter(({ definition }) => isBuiltInExerciseId(definition.id))
+    .map(({ definition }) => definition)
+  const deletedExerciseIds = result.rows
+    .filter(({ archived }) => archived)
+    .map(({ definition }) => definition.id)
+  return { customExercises, builtInOverrides, deletedExerciseIds }
+}
+
+export async function isExerciseArchived(id: string) {
+  await ensureExerciseStorage()
+  const result = await getPool().query<{ archived: boolean }>(
+    'SELECT archived_at IS NOT NULL AS archived FROM custom_exercises WHERE id = $1',
+    [id],
+  )
+  return result.rows[0]?.archived ?? false
+}
+
+export async function getCustomExerciseImage(exerciseId: string, mediaId: string) {
+  await ensureExerciseStorage()
+  const result = await getPool().query<{ contentType: string; imageData: Buffer }>(
+    `SELECT content_type AS "contentType", image_data AS "imageData"
+     FROM custom_exercise_media
+     WHERE exercise_id = $1 AND id = $2`,
+    [exerciseId, mediaId],
+  )
+  return result.rows[0] ?? null
 }
 
 export function createDefaultExerciseState(): ExerciseState {
@@ -148,9 +430,10 @@ export function createDefaultExerciseState(): ExerciseState {
   }
 }
 
-function createInstanceDefaultState(instanceId: string): ExerciseState {
+async function createInstanceDefaultState(instanceId: string): Promise<ExerciseState> {
   const state = createDefaultExerciseState()
-  const definition = getExerciseDefinition(instanceId)
+  const definition = await getExerciseDefinitionById(instanceId)
+  if (!definition) throw new Error(`Exercise definition not found: ${instanceId}`)
   return {
     ...state,
     settings: {
@@ -188,7 +471,7 @@ async function lockAndRead(client: PoolClient, instanceId: string): Promise<Exer
   )
   if (result.rows[0]) return result.rows[0].state
 
-  const initialState = createInstanceDefaultState(instanceId)
+  const initialState = await createInstanceDefaultState(instanceId)
   await client.query(
     `INSERT INTO exercise_instance_states (instance_id, state)
      VALUES ($1, $2::jsonb) ON CONFLICT (instance_id) DO NOTHING`,
@@ -218,7 +501,7 @@ export async function getExerciseState(instanceId: string): Promise<ExerciseStat
     'SELECT state FROM exercise_instance_states WHERE instance_id = $1',
     [instanceId],
   )
-  const state = result.rows[0]?.state ?? createInstanceDefaultState(instanceId)
+  const state = result.rows[0]?.state ?? await createInstanceDefaultState(instanceId)
   const responses = await getPool().query<ParticipantResponse>(
     `SELECT
        id,

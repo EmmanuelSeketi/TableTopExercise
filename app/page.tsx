@@ -1,6 +1,9 @@
-import { ArrowRight } from 'lucide-react'
-import { ExerciseOverviewVisual } from '@/components/inject-visual'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+'use client'
+
+import { Plus } from 'lucide-react'
+import { ExerciseSelectionCard } from '@/components/exercise-selection-card'
+import { Card } from '@/components/ui/card'
+import { useExerciseCatalog } from '@/lib/exercise-selection'
 
 const exerciseInstances = [
   {
@@ -38,39 +41,59 @@ const exerciseInstances = [
 ] as const
 
 export default function Page() {
+  const { catalog, builtInDefinitions, deletedExerciseIds, catalogReady } = useExerciseCatalog()
+
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-7xl flex-col justify-center gap-8 px-4 py-10 sm:px-6 lg:px-8">
-      <header className="space-y-2 text-center">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Tabletop exercise</p>
+    <main className="mx-auto flex min-h-svh w-full flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+      <header className="text-center">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Choose an organization</h1>
-        <p className="text-muted-foreground">Select the exercise instance you want to open.</p>
       </header>
-      <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3" aria-label="Exercise instances">
-        {exerciseInstances.map((instance) => (
-          <a
-            key={instance.id}
-            href={`/projected?exercise=${instance.id}`}
-            className="group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            <Card className="h-full overflow-hidden transition-all duration-200 group-hover:-translate-y-1 group-hover:border-primary/50 group-hover:shadow-xl">
-              <ExerciseOverviewVisual src={instance.image} alt={instance.imageAlt} />
-              <CardHeader className="gap-1.5 pb-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                  {instance.organization}
-                </p>
-                <CardTitle className="text-xl">{instance.audience}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="min-h-10 text-sm leading-relaxed text-muted-foreground">{instance.description}</p>
-                <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
-                  Open exercise
-                  <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-                </span>
-              </CardContent>
-            </Card>
-          </a>
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" aria-label="Exercise instances">
+        {exerciseInstances
+          .filter((instance) => !deletedExerciseIds.includes(instance.id))
+          .map((instance) => {
+            const definition = builtInDefinitions[instance.id]
+            return (
+              <ExerciseSelectionCard
+                key={instance.id}
+                id={instance.id}
+                organization={definition?.organization ?? instance.organization}
+                audience={definition?.audience ?? instance.audience}
+                description={definition
+                  ? `${definition.title} · ${definition.durationMinutes} minutes`
+                  : instance.description}
+                image={definition?.organizationImageUrl ?? definition?.scenario.overviewImageUrl ?? instance.image}
+                imageAlt={instance.imageAlt}
+              />
+            )
+          })}
+        {catalog.map((exercise) => (
+          <ExerciseSelectionCard
+            key={exercise.id}
+            id={exercise.id}
+            organization={exercise.organization}
+            audience={exercise.audience}
+            description={`${exercise.title} · ${exercise.durationMinutes} minutes`}
+            image={exercise.organizationImageUrl ?? '/images/signup cover.jpg'}
+            imageAlt={`${exercise.organization} exercise`}
+          />
         ))}
+        <a
+          href="/login?next=%2Fcreate-exercise"
+          aria-label="Create an exercise"
+          className="group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <Card className="flex h-full min-h-[15rem] items-center justify-center border-2 border-dotted border-slate-400 bg-slate-100 shadow-sm transition-all duration-200 group-hover:-translate-y-1 group-hover:border-primary group-hover:bg-slate-200 group-hover:shadow-lg">
+            <div className="flex flex-col items-center gap-3 px-5 py-8 text-center">
+              <span className="flex size-14 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 transition-colors group-hover:border-primary group-hover:text-primary">
+                <Plus aria-hidden="true" className="size-9" />
+              </span>
+              <span className="text-lg font-semibold text-slate-900">Create an exercise</span>
+            </div>
+          </Card>
+        </a>
       </section>
+      {!catalogReady && <p role="status" className="text-center text-sm text-muted-foreground">Loading your custom exercises…</p>}
     </main>
   )
 }

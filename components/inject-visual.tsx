@@ -32,13 +32,14 @@ interface VisualImageProps {
   src: string
   alt: string
   zoom?: boolean
+  compact?: boolean
 }
 
-function VisualImage({ src, alt, zoom = true }: VisualImageProps) {
+function VisualImage({ src, alt, zoom = true, compact = false }: VisualImageProps) {
   const [loaded, setLoaded] = useState(false)
 
   return (
-    <figure className="relative aspect-video w-full overflow-hidden bg-muted" aria-busy={!loaded}>
+    <figure className={`relative ${compact ? 'aspect-[2.2/1]' : 'aspect-video'} w-full overflow-hidden bg-muted`} aria-busy={!loaded}>
       {!loaded && (
         <div
           aria-hidden="true"
@@ -52,6 +53,7 @@ function VisualImage({ src, alt, zoom = true }: VisualImageProps) {
         height={900}
         sizes="(max-width: 768px) 100vw, 1200px"
         fill
+        unoptimized={src.startsWith('/api/exercises/')}
         onLoad={() => setLoaded(true)}
         onError={() => setLoaded(true)}
         className={`${zoom ? 'scale-[1.2] ' : ''}object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
@@ -63,10 +65,11 @@ function VisualImage({ src, alt, zoom = true }: VisualImageProps) {
 interface InjectVisualProps {
   injectId: string
   title: string
+  imageUrl?: string
 }
 
-export function InjectVisual({ injectId, title }: InjectVisualProps) {
-  const src = INJECT_IMAGES[injectId]
+export function InjectVisual({ injectId, title, imageUrl }: InjectVisualProps) {
+  const src = imageUrl ?? INJECT_IMAGES[injectId]
   if (!src) return null
 
   return <VisualImage key={src} src={src} alt={`Scenario visual for ${title}`} />
@@ -76,10 +79,12 @@ export function ExerciseOverviewVisual({
   src = '/images/inject0.png',
   alt = 'Illustrative tabletop exercise scenario',
   zoom = false,
+  compact = false,
 }: {
   src?: string
   alt?: string
   zoom?: boolean
+  compact?: boolean
 } = {}) {
-  return <VisualImage src={src} alt={alt} zoom={zoom} />
+  return <VisualImage src={src} alt={alt} zoom={zoom} compact={compact} />
 }

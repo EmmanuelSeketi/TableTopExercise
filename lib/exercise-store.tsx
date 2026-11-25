@@ -11,7 +11,8 @@ import {
 } from 'react'
 import { createClientId } from './client-id'
 import type { RoleId } from './exercise-data'
-import { exerciseApiUrl, useExerciseDefinition } from './exercise-selection'
+import type { ExerciseDefinition } from './exercise-instances'
+import { exerciseApiUrl, useExerciseDefinitionState } from './exercise-selection'
 
 export interface Decision {
   id: string
@@ -80,7 +81,7 @@ export interface ActionItem {
   priority: 'High' | 'Medium' | 'Low'
 }
 
-function createDefaultState(definition: ReturnType<typeof useExerciseDefinition>): ExerciseState {
+function createDefaultState(definition: ExerciseDefinition): ExerciseState {
   return {
     settings: {
       title: definition.title,
@@ -261,21 +262,26 @@ function diffObject(previous: Record<string, unknown>, current: Record<string, u
 }
 
 export function ExerciseProvider({ children }: { children: React.ReactNode }) {
-  const definition = useExerciseDefinition()
+  const { definition, ready: definitionReady } = useExerciseDefinitionState()
   const defaultState = useMemo(() => createDefaultState(definition), [definition.id])
   const [state, setState] = useState<ExerciseState>(defaultState)
   const stateRef = useRef(state)
   stateRef.current = state
-  const [hydrated, setHydrated] = useState(false)
+  const [hydratedExerciseId, setHydratedExerciseId] = useState<string | null>(null)
+  const hydrated = definitionReady && hydratedExerciseId === definition.id
   const [serverReady, setServerReady] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
   const notifiedRef = useRef<Set<number>>(new Set())
   const lastSyncedStateRef = useRef<ExerciseState | null>(null)
   const pendingWritesRef = useRef(0)
   useEffect(() => {
+    if (!definitionReady) return
     let cancelled = false
 
     async function hydrate() {
+      setState(defaultState)
+      setServerReady(false)
+      setHydratedExerciseId(null)
       try {
         const remote = await fetchStateFromServer()
         if (cancelled) return
@@ -289,7 +295,7 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
           setSyncError(error instanceof Error ? error.message : 'Could not connect to exercise storage')
         }
       } finally {
-        if (!cancelled) setHydrated(true)
+        if (!cancelled) setHydratedExerciseId(definition.id)
       }
     }
 
@@ -297,7 +303,7 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [definition.id, defaultState])
+  }, [definition.id, defaultState, definitionReady])
 
   useEffect(() => {
     if (!hydrated || serverReady) return
@@ -317,6 +323,7 @@ export function ExerciseProvider({ children }: { children: React.ReactNode }) {
           setSyncError(error instanceof Error ? error.message : 'Could not connect to exercise storage')
         }
       }
+      if (!cancelled) setHydratedExerciseId(definition.id)
     }, 5000)
 
     return () => {

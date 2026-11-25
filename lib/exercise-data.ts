@@ -1,32 +1,7 @@
 // Static content for the Incident Response Tabletop Exercise.
 // All narrative, roles, timeline, injects and scoring rubric live here.
 
-export type RoleId =
-  | 'incident-commander'
-  | 'soc-analyst'
-  | 'it-operations'
-  | 'sys-admin'
-  | 'network-engineer'
-  | 'comms-officer'
-  | 'hr-rep'
-  | 'legal-counsel'
-  | 'executive'
-  | 'observer'
-  | 'ict-manager'
-  | 'ict-officer'
-  | 'custom'
-  | 'network-telecommunications'
-  | 'engineering-electrical'
-  | 'mine-control'
-  | 'safety-hse'
-  | 'security'
-  | 'bcms'
-  | 'general-manager'
-  | 'bcms-lead'
-  | 'management-ict'
-  | 'supply-chain'
-  | 'finance'
-  | 'maintenance-mining'
+export type RoleId = string
 
 export interface Role {
   id: RoleId
@@ -67,6 +42,7 @@ export interface Inject {
     role: string
     prompt: string
   }[]
+  imageUrl?: string
   mitre?: string
   nist: string
 }

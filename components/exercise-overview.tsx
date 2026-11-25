@@ -7,6 +7,8 @@ interface ExerciseOverviewProps {
 
 export function ExerciseOverview({ definition }: ExerciseOverviewProps) {
   const isZechl = definition.id === 'zechl'
+  const isCustom = definition.id.startsWith('custom-')
+  const overviewImage = definition.scenario.overviewImageUrl ?? definition.organizationImageUrl
   const overviewParagraphs = definition.scenario.initialSituation
     .split(/\n/)
     .map((paragraph) => paragraph.trim())
@@ -35,7 +37,33 @@ export function ExerciseOverview({ definition }: ExerciseOverviewProps) {
         </header>
       )}
 
-      {isZechl ? (
+      {isCustom ? (
+        <div className="space-y-5">
+          {overviewImage && (
+            <ExerciseOverviewVisual
+              src={overviewImage}
+              alt={`${definition.organization} exercise overview`}
+            />
+          )}
+          <p className="whitespace-pre-line text-justify text-sm leading-7 text-muted-foreground sm:text-base">
+            {definition.scenario.initialSituation}
+          </p>
+          {definition.objectives && definition.objectives.length > 0 && (
+            <section className="rounded-xl border border-border/70 bg-muted/30 p-4">
+              <h2 className="font-semibold text-foreground">Exercise objectives</h2>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                {definition.objectives.map((objective) => <li key={objective}>{objective}</li>)}
+              </ul>
+            </section>
+          )}
+          {definition.exerciseBoundary && (
+            <p className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm leading-relaxed text-amber-950">
+              <span className="font-semibold">Exercise boundaries: </span>
+              {definition.exerciseBoundary}
+            </p>
+          )}
+        </div>
+      ) : isZechl ? (
         <section
           className="rounded-2xl border border-border/70 bg-card px-4 py-1 shadow-sm sm:px-5"
           aria-label="Scenario overview"
@@ -108,6 +136,7 @@ export function ExerciseSessionFlow({ definition }: ExerciseOverviewProps) {
 
 export function ExerciseClosing({ definition }: ExerciseOverviewProps) {
   const isZechl = definition.id === 'zechl'
+  const isCustom = definition.id.startsWith('custom-')
   return (
     <div className="space-y-6">
       <header className="space-y-2">
@@ -116,12 +145,17 @@ export function ExerciseClosing({ definition }: ExerciseOverviewProps) {
           {definition.organization} · {definition.audience}
         </p>
       </header>
-      {!isZechl && (
+      {isCustom && (definition.scenario.overviewImageUrl || definition.organizationImageUrl) ? (
+        <ExerciseOverviewVisual
+          src={definition.scenario.overviewImageUrl ?? definition.organizationImageUrl ?? ''}
+          alt={`${definition.organization} exercise overview`}
+        />
+      ) : !isZechl && !isCustom ? (
         <ExerciseOverviewVisual
           src={definition.organization === 'Mimosa Mine' ? '/Overview Image.jpg' : '/images/inject0.png'}
           alt={definition.organization === 'Mimosa Mine' ? 'Aerial view of Mimosa Mine' : 'Illustrative exercise scenario'}
         />
-      )}
+      ) : null}
       <section className="space-y-3 rounded-2xl border border-border/70 bg-muted/30 p-5 sm:p-6">
         <h2 className="text-lg font-semibold text-foreground">Reflection questions</h2>
         <ul className="list-disc space-y-2 pl-5 text-justify text-sm leading-relaxed text-muted-foreground">

@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
-import { joinExercise } from '@/lib/exercise-database'
-import type { RoleId } from '@/lib/exercise-data'
-import { getExerciseDefinition, getExerciseIdFromUrl } from '@/lib/exercise-instances'
+import { getExerciseDefinitionById, isExerciseArchived, joinExercise } from '@/lib/exercise-database'
+import { getExerciseIdFromUrl } from '@/lib/exercise-instances'
 import {
   createParticipantSession,
   getParticipantDeviceId,
@@ -17,7 +16,18 @@ export async function POST(request: Request) {
   if (!hasSameOrigin(request)) return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 })
   const instanceId = getExerciseIdFromUrl(request.url)
   if (!instanceId) return NextResponse.json({ error: 'Unknown exercise instance' }, { status: 400 })
-  const roles = getExerciseDefinition(instanceId).roles
+  let definition
+  try {
+    if (await isExerciseArchived(instanceId)) {
+      return NextResponse.json({ error: 'This exercise is no longer available for participation.' }, { status: 410 })
+    }
+    definition = await getExerciseDefinitionById(instanceId)
+  } catch (error) {
+    console.error('Failed to load exercise definition for participant signup:', error)
+    return NextResponse.json({ error: 'Exercise details are temporarily unavailable' }, { status: 503 })
+  }
+  if (!definition) return NextResponse.json({ error: 'Unknown exercise instance' }, { status: 404 })
+  const roles = definition.roles
   let body: unknown
   try {
     body = await request.json()
@@ -53,7 +63,7 @@ export async function POST(request: Request) {
     const result = await joinExercise(instanceId, {
       deviceId,
       name: body.name.trim(),
-      roleId: body.roleId as RoleId,
+      roleId: body.roleId,
       ...(body.roleId === 'custom' ? { customRole } : {}),
     })
     const response = NextResponse.json({ success: true, participant: result.participant })

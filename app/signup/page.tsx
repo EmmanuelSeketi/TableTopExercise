@@ -3,11 +3,20 @@
 import { useRouter } from 'next/navigation'
 import { ExerciseOverviewVisual } from '@/components/inject-visual'
 import { ParticipantsSection } from '@/components/sections/participants'
-import { useExerciseDefinition } from '@/lib/exercise-selection'
+import { useExerciseDefinition, useExerciseSelectionReady } from '@/lib/exercise-selection'
 
 export default function SignupPage() {
   const router = useRouter()
   const definition = useExerciseDefinition()
+  const selectionReady = useExerciseSelectionReady()
+
+  if (!selectionReady) {
+    return (
+      <div role="status" className="px-4 py-8 text-center text-sm text-muted-foreground">
+        Loading selected exercise...
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -18,7 +27,12 @@ export default function SignupPage() {
           </h1>
           <p className="text-sm text-muted-foreground">{definition.scenario.title} · {definition.durationMinutes} minutes</p>
         </div>
-        {definition.id === 'zechl' ? (
+        {definition.id.startsWith('custom-') ? (
+          <ExerciseOverviewVisual
+            src={definition.scenario.overviewImageUrl ?? definition.organizationImageUrl ?? '/images/signup cover.jpg'}
+            alt={`${definition.organization} exercise overview`}
+          />
+        ) : definition.id === 'zechl' ? (
           <ExerciseOverviewVisual
             src="/images/ZECHL/Zechl Overview.jpg"
             alt="ZECHL critical payment infrastructure overview"

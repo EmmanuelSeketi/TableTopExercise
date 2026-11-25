@@ -13,15 +13,18 @@ export interface ExerciseDefinition {
   id: string
   title: string
   organization: string
+  organizationImageUrl?: string
   durationMinutes: number
   audience: string
   scenario: {
     title: string
     initialSituation: string
+    overviewImageUrl?: string
   }
   injects: Inject[]
   roles: Role[]
   timeline: TimelineEvent[]
+  objectives?: string[]
   sessionFlow?: SessionFlowStep[]
   closingQuestions?: string[]
   exerciseBoundary?: string
@@ -558,6 +561,18 @@ export const EXERCISE_CHOICES = [
   { id: EXERCISE_IDS.zechl, organization: 'Zambia Electronic Clearing House Limited (ZECHL)', audience: 'Management & technical', available: true },
 ] as const
 
+export function isCustomExerciseId(id: string) {
+  return /^custom-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+}
+
+export function isBuiltInExerciseId(id: string) {
+  return EXERCISE_CHOICES.some((choice) => choice.id === id)
+}
+
+export function isManagedExerciseId(id: string) {
+  return isBuiltInExerciseId(id) || isCustomExerciseId(id)
+}
+
 export function getExerciseDefinition(id: string): ExerciseDefinition {
   if (id === EXERCISE_IDS.zechl) {
     return {
@@ -677,5 +692,7 @@ The ICT Manager escalates the situation to management.`,
 export function getExerciseIdFromUrl(url: string) {
   const id = new URL(url).searchParams.get('exercise')
   if (!id) return EXERCISE_IDS.meridian
-  return EXERCISE_CHOICES.some((choice) => choice.id === id && choice.available) ? id : null
+  return EXERCISE_CHOICES.some((choice) => choice.id === id && choice.available) || isCustomExerciseId(id)
+    ? id
+    : null
 }

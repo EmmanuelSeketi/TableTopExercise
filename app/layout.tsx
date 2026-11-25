@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { ExerciseProvider } from '@/lib/exercise-store'
+import { ExerciseRegistryProvider } from '@/lib/exercise-selection'
 
 const geistSans = Geist({
   subsets: ['latin'],
@@ -17,7 +18,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Incident Response Exercise',
   description:
-    'Facilitate professional 60-minute cybersecurity incident response tabletop exercises. Manage scenarios, injects, decision logs, scoring, and generate After Action Reports.',
+    'Create and facilitate cybersecurity incident response tabletop exercises. Manage scenarios, injects, decision logs, scoring, and generate After Action Reports.',
   generator: 'v0.app',
   icons: {
     icon: '/icon.svg',
@@ -39,7 +40,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} bg-background`}>
       <body className="font-sans antialiased">
-        <ExerciseProvider>{children}</ExerciseProvider>
+        <ExerciseRegistryProvider>
+          <ExerciseProvider>{children}</ExerciseProvider>
+        </ExerciseRegistryProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

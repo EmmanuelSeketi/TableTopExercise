@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, ChevronLeft, ChevronRight, MessageSquareText, Minus, XCircle } from 'lucide-react'
-import { useExerciseDefinition } from '@/lib/exercise-selection'
+import { useExerciseDefinition, useExerciseSelectionReady } from '@/lib/exercise-selection'
 import {
   ExerciseClosing,
   ExerciseOverview,
@@ -41,8 +41,9 @@ const RESPONSE_TYPES = [
 ] as const
 
 export default function ModeratePage() {
-  const { state, setActiveInject } = useExercise()
+  const { state, setActiveInject, hydrated } = useExercise()
   const definition = useExerciseDefinition()
+  const selectionReady = useExerciseSelectionReady()
   const { injects, roles } = definition
   const { steps: exerciseSteps, index: activeStepIndex, step: activeStep } =
     getCurrentExerciseStep(definition, state.activeInjectId)
@@ -100,6 +101,10 @@ export default function ModeratePage() {
 
   const discussionPoints = activeInject?.discussionPoints ?? []
 
+  if (!selectionReady || !hydrated) {
+    return <div role="status" className="p-8 text-center text-sm text-muted-foreground">Loading exercise...</div>
+  }
+
   return (
     <div className="mx-auto w-full max-w-[90rem] space-y-6 px-4 pb-6 pt-2 sm:px-6 sm:pb-8 sm:pt-4 lg:px-8">
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
@@ -112,7 +117,22 @@ export default function ModeratePage() {
                   <span className="text-lg font-semibold text-foreground">{activeInject.title}</span>
                 </div>
                 <p className="whitespace-pre-line text-justify text-sm leading-relaxed text-muted-foreground">{activeInject.description}</p>
-                <InjectVisual injectId={activeInject.id} title={activeInject.title} />
+                {activeInject.evidence && (
+                  <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Information available</p>
+                    <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-foreground">{activeInject.evidence}</p>
+                  </div>
+                )}
+                <InjectVisual injectId={activeInject.id} title={activeInject.title} imageUrl={activeInject.imageUrl} />
+                {(activeInject.facilitatorNotes || activeInject.hint) && (
+                  <details className="rounded-lg border border-border/70 bg-muted/20 p-3">
+                    <summary className="cursor-pointer text-sm font-semibold">Facilitator guidance</summary>
+                    <div className="mt-3 space-y-3 text-sm text-muted-foreground">
+                      {activeInject.facilitatorNotes && <p><span className="font-semibold text-foreground">Notes: </span>{activeInject.facilitatorNotes}</p>}
+                      {activeInject.hint && <p><span className="font-semibold text-foreground">Hint: </span>{activeInject.hint}</p>}
+                    </div>
+                  </details>
+                )}
                 {discussionPoints.length > 0 && (
                   <div className="space-y-3">
                     <Button
